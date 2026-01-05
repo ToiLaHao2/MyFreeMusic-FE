@@ -1,0 +1,6 @@
+{
+    "name": "@myfreemusic/api-client",
+    "version": "1.0.0",
+    "main": "index.js",
+    "description": "Shared API client for MyFreeMusic frontend apps"
+}
