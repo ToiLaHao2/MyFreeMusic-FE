@@ -107,7 +107,7 @@ const UploadSongPage = () => {
                 formData.append('songGenreId', selectedGenre);
             }
             if (artist) {
-                // formData.append('songArtistId', artist); // Backend needs to support creating artist by name if we pass string
+                formData.append('songArtistName', artist); // Send artist name, backend will find or create
             }
 
             formData.append('skipDuplicateCheck', 'false');
