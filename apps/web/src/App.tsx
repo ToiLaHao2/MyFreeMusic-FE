@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
+import SearchPage from './pages/SearchPage';
+import UploadSongPage from './pages/UploadSongPage';
+import LibraryPage from './pages/LibraryPage';
+import PlaylistPage from './pages/PlaylistPage';
+import CommunityPage from './pages/CommunityPage';
+import ProfilePage from './pages/ProfilePage';
+import MainLayout from './layouts/MainLayout';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { useSelector } from 'react-redux';
+import type { RootState } from './store';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { user } = useSelector((state: RootState) => state.auth);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+
+        {/* User Routes (Wrapped in MainLayout) */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/upload" element={<UploadSongPage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/playlist/:id" element={<PlaylistPage />} />
+          </Route>
+        </Route>
+
+        {/* Admin Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+          <Route element={<MainLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

@@ -1,26 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import federation from '@originjs/vite-plugin-federation'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    federation({
-      name: 'shell',
-      // Remote apps will be added here as the project grows
-      // Example:
-      // remotes: {
-      //   mfePlayer: 'http://localhost:5001/assets/remoteEntry.js',
-      //   mfePlaylist: 'http://localhost:5002/assets/remoteEntry.js',
-      // },
-      shared: ['react', 'react-dom']
-    })
-  ],
-  build: {
-    modulePreload: false,
-    target: 'esnext',
-    minify: false,
-    cssCodeSplit: false
-  }
+    plugins: [
+        react(),
+        tailwindcss(),
+    ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
+    },
+    server: {
+        port: 5173,
+        open: true,
+    },
 })

@@ -1,68 +1,274 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@theme {
+    /* ========================================
+       Nokia Lumia / Windows Phone Metro Colors
+       ======================================== */
+    --color-metro-cyan: #00ABA9;
+    --color-metro-magenta: #D80073;
+    --color-metro-lime: #A4C400;
+    --color-metro-orange: #FA6800;
+    --color-metro-blue: #0050EF;
+    --color-metro-purple: #AA00FF;
+    --color-metro-teal: #00A300;
+    --color-metro-red: #E51400;
+    --color-metro-pink: #F472B6;
+    --color-metro-yellow: #E3C800;
+    --color-metro-dark: #000000;
+    --color-metro-dark-alt: #1A1A1A;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    /* Animations */
+    --animate-tilt: tilt 10s infinite linear;
+    --animate-slide-up: slide-up 0.4s ease-out;
+    --animate-fade-in: fade-in 0.3s ease-out;
+    --animate-tile-press: tile-press 0.15s ease-out;
+
+    @keyframes tilt {
+
+        0%,
+        50%,
+        100% {
+            transform: rotate(0deg);
+        }
+
+        25% {
+            transform: rotate(0.5deg);
+        }
+
+        75% {
+            transform: rotate(-0.5deg);
+        }
+    }
+
+    @keyframes slide-up {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes tile-press {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(0.95);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translate(0, 0) rotate(0deg);
+        }
+
+        25% {
+            transform: translate(10px, -15px) rotate(2deg);
+        }
+
+        50% {
+            transform: translate(-5px, 10px) rotate(-1deg);
+        }
+
+        75% {
+            transform: translate(-10px, -5px) rotate(1deg);
+        }
+    }
+
+    @keyframes shimmer {
+        0% {
+            transform: translateX(-100%);
+        }
+
+        100% {
+            transform: translateX(100%);
+        }
+    }
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* ========================================
+   Global Styles
+   ======================================== */
+html {
+    scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+    background-color: var(--color-metro-dark);
+    font-family: "Segoe UI", "Segoe UI Light", Tahoma, Geneva, Verdana, sans-serif;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Selection Color */
+::selection {
+    background-color: var(--color-metro-cyan);
+    color: #ffffff;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* ========================================
+   Metro Typography Helpers
+   ======================================== */
+.metro-title {
+    font-weight: 200;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.metro-title-bold {
+    font-weight: 600;
+}
+
+.metro-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+
+/* ========================================
+   Metro Input Styles
+   ======================================== */
+.metro-input {
+    background-color: #1A1A1A;
+    border: none;
+    border-left: 4px solid #333333;
+    padding: 1rem;
+    color: #ffffff;
+    transition: border-color 0.2s ease;
+}
+
+.metro-input:focus {
+    outline: none;
+    border-left-color: var(--color-metro-cyan);
+}
+
+.metro-input::placeholder {
+    color: #666666;
+}
+
+/* ========================================
+   Metro Button Styles
+   ======================================== */
+.metro-btn {
+    background-color: var(--color-metro-cyan);
+    color: #ffffff;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.metro-btn:hover {
+    filter: brightness(1.1);
+}
+
+.metro-btn:active {
+    transform: scale(0.98);
+}
+
+.metro-btn-outline {
+    background-color: transparent;
+    border: 2px solid #333333;
+    color: #888888;
+}
+
+.metro-btn-outline:hover {
+    border-color: var(--color-metro-cyan);
+    color: #ffffff;
+}
+
+/* ========================================
+   Custom Metro Scrollbar (Dark Theme)
+   ======================================== */
+
+/* Webkit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333333;
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-metro-cyan);
+}
+
+::-webkit-scrollbar-corner {
+    background: #000000;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #333333 #000000;
+}
+
+/* Hide scrollbar arrows */
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* ========================================
+   Metro Tile Hover Effects
+   ======================================== */
+.metro-tile-hover {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.metro-tile-hover:hover {
+    transform: scale(0.98);
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.metro-tile-hover:active {
+    transform: scale(0.95);
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+.border-metro {
+    border-color: #222222;
+}
+
+.bg-metro-card {
+    background-color: #1A1A1A;
+}
+
+/* Status bar style header */
+.metro-status-bar {
+    background: linear-gradient(180deg, #1A1A1A 0%, #000000 100%);
 }
