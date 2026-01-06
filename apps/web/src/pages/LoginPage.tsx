@@ -1,40 +1,32 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
+import { login } from '../store/slices/authSlice';
 import type { RootState } from '../store';
-import { MOCK_USERS } from '../mocks/users';
 import { Music2, Loader2 } from 'lucide-react';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const dispatch = useDispatch();
+    const [rememberMe, setRememberMe] = useState(false);
+    const dispatch = useDispatch<any>();
     const navigate = useNavigate();
-    const { isLoading } = useSelector((state: RootState) => state.auth);
+    const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        dispatch(loginStart());
+        const result = await dispatch(login({ email, password, rememberMe }));
 
-        setTimeout(() => {
-            const user = MOCK_USERS.find((u) => u.email === email);
-
-            if (user && password === 'password') {
-                dispatch(loginSuccess(user));
-                navigate(user.role === 'ADMIN' ? '/admin' : '/');
-            } else {
-                alert(user ? "Wrong password! Use 'password'" : "User not found!");
-                dispatch(loginFailure());
-            }
-        }, 800);
+        if (login.fulfilled.match(result)) {
+            navigate(result.payload.role === 'ADMIN' ? '/admin' : '/');
+        }
     };
 
     return (
         <div className="min-h-screen bg-black flex">
-            {/* Left Side - Branding with Animated Tiles */}
+            {/* Left Side - Branding (Unchanged) */}
             <div className="hidden lg:flex lg:w-1/2 bg-metro-cyan items-center justify-center relative overflow-hidden">
-                {/* Animated Floating Tiles Background */}
+                {/* ... (Animation code unchanged) ... */}
                 <div className="absolute inset-0">
                     {Array.from({ length: 20 }).map((_, i) => {
                         const size = Math.random() * 80 + 40;
@@ -100,17 +92,23 @@ const LoginPage = () => {
                     </h2>
                     <p className="text-gray-500 mb-8 text-sm">Enter your credentials to continue</p>
 
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-900/20 border-l-4 border-red-500 text-red-500 text-sm">
+                            {error}
+                        </div>
+                    )}
+
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-widest text-metro-cyan mb-2">
-                                Email
+                                Credential
                             </label>
                             <input
-                                type="email"
+                                type="text"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-gray-900 border-l-4 border-gray-700 p-4 text-white placeholder-gray-600 focus:border-metro-cyan focus:outline-none transition-colors"
-                                placeholder="user@myfreemusic.com"
+                                placeholder="Email or Username"
                                 required
                             />
                         </div>
@@ -126,6 +124,19 @@ const LoginPage = () => {
                                 placeholder="••••••••"
                                 required
                             />
+                        </div>
+
+                        <div className="flex items-center">
+                            <input
+                                id="remember-me"
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-700 bg-gray-900 text-metro-cyan focus:ring-metro-cyan"
+                            />
+                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
+                                Remember me
+                            </label>
                         </div>
 
                         <button
@@ -144,12 +155,12 @@ const LoginPage = () => {
                         </button>
                     </form>
 
-                    {/* Mock Credentials */}
+                    {/* Backend Credentials */}
                     <div className="mt-8 p-4 bg-gray-900 border-l-4 border-metro-orange">
                         <p className="text-xs font-bold uppercase tracking-widest text-metro-orange mb-2">Demo Accounts</p>
                         <div className="text-xs text-gray-400 space-y-1 font-mono">
                             <p>👤 user@myfreemusic.com / password</p>
-                            <p>👑 admin@myfreemusic.com / password</p>
+                            <p>👑 master_admin / admin_oanh_hao</p>
                         </div>
                     </div>
                 </div>

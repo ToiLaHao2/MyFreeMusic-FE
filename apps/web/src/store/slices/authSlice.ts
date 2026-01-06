@@ -1,48 +1,108 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import api from '../../lib/api-client';
 
 export interface User {
     id: string;
     email: string;
     fullName: string;
     role: 'ADMIN' | 'USER';
-    profilePicture?: string;
+    avatar?: string;
 }
 
 interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    error: string | null;
 }
 
 const initialState: AuthState = {
-    user: null,
-    isAuthenticated: false,
+    user: null, // Load from localStorage in root if needed
+    isAuthenticated: !!localStorage.getItem('accessToken'),
     isLoading: false,
+    error: null,
 };
+
+// Async Thunks
+export const login = createAsyncThunk(
+    'auth/login',
+    async (credentials: { email: string; password: string; rememberMe: boolean }, { rejectWithValue }) => {
+        try {
+            const response = await api.post('/auth/login', {
+                user_email: credentials.email,
+                user_password: credentials.password,
+                device_type: 'web',
+                remember_me: credentials.rememberMe
+            });
+
+            const { accessToken, refreshToken, user } = response.data.data;
+
+            // Store tokens
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            localStorage.setItem('user', JSON.stringify(user));
+
+            return user;
+
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || 'Login failed');
+        }
+    }
+);
+
+export const logout = createAsyncThunk(
+    'auth/logout',
+    async () => { // Removed unused rejectWithValue
+        try {
+            const refreshToken = localStorage.getItem('refreshToken');
+            await api.post('/auth/logout', { refreshToken });
+        } catch (error) {
+            // Ignore logout errors
+        } finally {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+        }
+    }
+);
 
 const authSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
-        loginStart: (state) => {
-            state.isLoading = true;
-        },
-        loginSuccess: (state, action: PayloadAction<User>) => {
-            state.isLoading = false;
-            state.isAuthenticated = true;
-            state.user = action.payload;
-        },
-        loginFailure: (state) => {
-            state.isLoading = false;
-            state.isAuthenticated = false;
-            state.user = null;
-        },
-        logout: (state) => {
-            state.user = null;
-            state.isAuthenticated = false;
-        },
+        // Reducer to restore session from local storage on app load
+        restoreSession: (state) => {
+            const userStr = localStorage.getItem('user');
+            const token = localStorage.getItem('accessToken');
+            if (userStr && token) {
+                state.isAuthenticated = true;
+                state.user = JSON.parse(userStr);
+            }
+        }
+    },
+    extraReducers: (builder) => {
+        builder
+            // Login
+            .addCase(login.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(login.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.isAuthenticated = true;
+                state.user = action.payload;
+            })
+            .addCase(login.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+            // Logout
+            .addCase(logout.fulfilled, (state) => {
+                state.user = null;
+                state.isAuthenticated = false;
+            });
     },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout } = authSlice.actions;
+export const { restoreSession } = authSlice.actions;
 export default authSlice.reducer;
