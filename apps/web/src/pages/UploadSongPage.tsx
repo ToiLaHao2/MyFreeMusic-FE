@@ -1,13 +1,18 @@
 import { UploadCloud, Music, Image as ImageIcon, Link2, Youtube, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type UploadMode = 'file' | 'youtube';
+
+interface Genre {
+    id: string;
+    name: string;
+}
 
 import { useDispatch, useSelector } from 'react-redux';
 import { type AppDispatch, type RootState } from '../store';
 import { uploadSongDevice, uploadSongYoutube, clearUploadStatus } from '../store/slices/songSlice';
+import { songApi } from '../lib/api-client';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 
 const UploadSongPage = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -19,6 +24,23 @@ const UploadSongPage = () => {
     const [songFile, setSongFile] = useState<File | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [youtubeUrl, setYoutubeUrl] = useState('');
+    const [title, setTitle] = useState('');
+    const [artist, setArtist] = useState('');
+    const [selectedGenre, setSelectedGenre] = useState('');
+    const [genres, setGenres] = useState<Genre[]>([]);
+
+    // Fetch genres from API on mount
+    useEffect(() => {
+        const fetchGenres = async () => {
+            try {
+                const res = await songApi.getGenres();
+                setGenres(res.data.data?.genres || []);
+            } catch (err) {
+                console.error('Failed to fetch genres', err);
+            }
+        };
+        fetchGenres();
+    }, []);
 
     useEffect(() => {
         if (uploadStatus === 'succeeded') {
@@ -67,16 +89,34 @@ const UploadSongPage = () => {
 
     const handleUpload = () => {
         if (mode === 'file') {
-            if (!songFile || !coverFile) return;
+            if (!songFile) {
+                alert("Please select a song file.");
+                return;
+            }
+            if (!coverFile) {
+                alert("Please select a cover image.");
+                return;
+            }
+
             const formData = new FormData();
             formData.append('songFile', songFile);
             formData.append('songCover', coverFile);
-            formData.append('songTitle', songFile.name.replace(/\.[^/.]+$/, ""));
-            // Default genre/artist for now
+            formData.append('songTitle', title || songFile.name.replace(/\.[^/.]+$/, ""));
+
+            if (selectedGenre) {
+                formData.append('songGenreId', selectedGenre);
+            }
+            if (artist) {
+                // formData.append('songArtistId', artist); // Backend needs to support creating artist by name if we pass string
+            }
+
             formData.append('skipDuplicateCheck', 'false');
             dispatch(uploadSongDevice(formData));
         } else {
-            if (!youtubeUrl) return;
+            if (!youtubeUrl) {
+                alert("Please enter a YouTube URL.");
+                return;
+            }
             dispatch(uploadSongYoutube({ ytbURL: youtubeUrl, skipDuplicateCheck: false }));
         }
     };
@@ -237,6 +277,8 @@ const UploadSongPage = () => {
                             <label className="block text-xs font-bold uppercase tracking-widest text-metro-cyan mb-2">Title</label>
                             <input
                                 type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
                                 className="w-full bg-gray-800 border-l-4 border-gray-700 p-4 text-white focus:border-metro-cyan focus:outline-none transition-colors"
                                 placeholder="Enter song title"
                             />
@@ -245,20 +287,23 @@ const UploadSongPage = () => {
                             <label className="block text-xs font-bold uppercase tracking-widest text-metro-cyan mb-2">Artist</label>
                             <input
                                 type="text"
+                                value={artist}
+                                onChange={(e) => setArtist(e.target.value)}
                                 className="w-full bg-gray-800 border-l-4 border-gray-700 p-4 text-white focus:border-metro-cyan focus:outline-none transition-colors"
                                 placeholder="Enter artist name"
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-widest text-metro-cyan mb-2">Genre</label>
-                            <select className="w-full bg-gray-800 border-l-4 border-gray-700 p-4 text-white focus:border-metro-cyan focus:outline-none transition-colors">
-                                <option>Pop</option>
-                                <option>Rock</option>
-                                <option>Hip Hop</option>
-                                <option>Electronic</option>
-                                <option>R&B</option>
-                                <option>Jazz</option>
-                                <option>Classical</option>
+                            <select
+                                value={selectedGenre}
+                                onChange={(e) => setSelectedGenre(e.target.value)}
+                                className="w-full bg-gray-800 border-l-4 border-gray-700 p-4 text-white focus:border-metro-cyan focus:outline-none transition-colors"
+                            >
+                                <option value="">Select a genre</option>
+                                {genres.map((g) => (
+                                    <option key={g.id} value={g.id}>{g.name}</option>
+                                ))}
                             </select>
                         </div>
                         <button

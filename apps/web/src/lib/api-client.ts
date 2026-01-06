@@ -104,6 +104,10 @@ export const songApi = {
     uploadYoutube: (data: { ytbURL: string, skipDuplicateCheck?: boolean }) => api.post('/songs/addNewSongFromYtUrl', data),
     search: (name: string) => api.get(`/songs/filter/name?name=${name}`),
     getStreamUrl: (id: string) => api.get(`/songs/stream/${id}`),
+
+    // New Methods for dynamic data
+    getGenres: () => api.get('/genres'),
+    getArtists: () => api.get('/artists'),
 };
 
 export const playlistApi = {

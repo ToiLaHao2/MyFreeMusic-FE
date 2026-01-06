@@ -16,9 +16,13 @@ interface AuthState {
     error: string | null;
 }
 
+// Initialize auth state from localStorage to persist login across page reloads
+const storedUser = localStorage.getItem('user');
+const storedToken = localStorage.getItem('accessToken');
+
 const initialState: AuthState = {
-    user: null, // Load from localStorage in root if needed
-    isAuthenticated: !!localStorage.getItem('accessToken'),
+    user: storedUser ? JSON.parse(storedUser) : null,
+    isAuthenticated: !!(storedToken && storedUser),
     isLoading: false,
     error: null,
 };

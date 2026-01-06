@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -10,7 +11,6 @@ import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import MainLayout from './layouts/MainLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { useSelector } from 'react-redux';
 import type { RootState } from './store';
 
 function App() {
