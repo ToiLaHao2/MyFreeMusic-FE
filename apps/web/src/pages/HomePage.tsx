@@ -1,11 +1,22 @@
-import { MOCK_SONGS } from '../mocks/songs';
+import { useEffect } from 'react';
 import { MetroTile } from '../components/MetroTile';
 import { Play, Search, Library, UploadCloud, Settings, Radio } from 'lucide-react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
+import { fetchSongs, setCurrentSong } from '../store/slices/songSlice';
 
 const HomePage = () => {
     const { user } = useSelector((state: RootState) => state.auth);
+    const { songs, loading } = useSelector((state: RootState) => state.songs);
+    const dispatch = useDispatch<AppDispatch>();
+
+    useEffect(() => {
+        dispatch(fetchSongs());
+    }, [dispatch]);
+
+    const handlePlaySong = (song: any) => {
+        dispatch(setCurrentSong(song));
+    };
 
     return (
         <div className="animate-slide-up">
@@ -21,7 +32,7 @@ const HomePage = () => {
                 {/* Hero Tile */}
                 <MetroTile
                     title="Library"
-                    count="128 Songs"
+                    count={`${songs.length} Songs`}
                     icon={<Library size={32} />}
                     color="cyan"
                     size="wide"
@@ -70,30 +81,40 @@ const HomePage = () => {
 
             {/* Recommended Songs Sections */}
             <h2 className="mb-6 text-2xl font-light uppercase tracking-wide text-white border-b border-gray-800 pb-2">
-                Recommended For You
+                Recent Uploads
             </h2>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {MOCK_SONGS.map((song) => (
-                    <div
-                        key={song.id}
-                        className="group relative aspect-square cursor-pointer overflow-hidden bg-gray-800 hover:z-10 hover:shadow-xl hover:scale-105 transition-all duration-300"
-                    >
-                        <img src={song.coverUrl} alt={song.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+            {loading ? (
+                <div className="text-white">Loading music data...</div>
+            ) : (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                    {songs.slice(0, 12).map((song) => (
+                        <div
+                            key={song.id}
+                            className="group relative aspect-square cursor-pointer overflow-hidden bg-gray-800 hover:z-10 hover:shadow-xl hover:scale-105 transition-all duration-300"
+                            onClick={() => handlePlaySong(song)}
+                        >
+                            <img
+                                src={song.coverUrl || "https://via.placeholder.com/300?text=No+Cover"}
+                                alt={song.title}
+                                className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                            />
 
-                        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 opacity-100 transition-opacity">
-                            <h3 className="truncate font-bold text-white uppercase tracking-wider">{song.title}</h3>
-                            <p className="truncate text-xs text-gray-300">{song.artist}</p>
-                        </div>
+                            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 opacity-100 transition-opacity">
+                                <h3 className="truncate font-bold text-white uppercase tracking-wider">{song.title}</h3>
+                                {/* Assuming Backend doesn't populate artist name yet, hiding or showing placeholder */}
+                                <p className="truncate text-xs text-gray-300">Unknown Artist</p>
+                            </div>
 
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="rounded-full bg-metro-lime p-2 text-black shadow-lg">
-                                <Play size={16} fill="currentColor" />
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="rounded-full bg-metro-lime p-2 text-black shadow-lg">
+                                    <Play size={16} fill="currentColor" />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

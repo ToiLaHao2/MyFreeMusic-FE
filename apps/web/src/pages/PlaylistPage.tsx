@@ -1,82 +1,129 @@
-import { Play, Clock, MoreHorizontal } from 'lucide-react';
-import { MOCK_SONGS } from '../mocks/songs';
-import { Link } from 'react-router-dom';
+import { Play, Clock, MoreHorizontal, Heart } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { playlistApi, type Playlist } from '../lib/api-client';
+import { useDispatch } from 'react-redux';
+import { setCurrentSong } from '../store/slices/songSlice';
 
 const PlaylistPage = () => {
-    // Mock Playlist Data
-    const playlist = {
-        name: "My Favorite Hits",
-        author: "Admin User",
-        cover: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop",
-        description: "Best songs for coding and relaxing.",
-        songs: MOCK_SONGS
+    const { id } = useParams();
+    const dispatch = useDispatch();
+    const [playlist, setPlaylist] = useState<Playlist | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadPlaylist = async () => {
+            if (!id) return;
+            try {
+                setLoading(true);
+                const res = await playlistApi.getById(id);
+                setPlaylist(res.data.data.playlist);
+            } catch (err) {
+                console.error(err);
+                setError("Failed to load playlist.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadPlaylist();
+    }, [id]);
+
+    const handlePlaySong = (song: any) => {
+        dispatch(setCurrentSong(song));
     };
+
+    if (loading) return <div className="text-white p-8">Loading playlist...</div>;
+    if (error || !playlist) return <div className="text-red-500 p-8">Error: {error || "Playlist not found"}</div>;
+
+    const songs = playlist.Songs || [];
 
     return (
         <div className="animate-slide-up">
-            <div className="mb-4">
-                <Link to="/library" className="text-gray-400 hover:text-white uppercase text-xs font-bold tracking-widest">
-                    ← Back to Library
-                </Link>
-            </div>
-
             {/* Playlist Header */}
-            <div className="flex flex-col gap-8 md:flex-row md:items-end border-b border-gray-800 pb-8">
-                <div className="relative h-64 w-64 shadow-2xl group">
-                    <img src={playlist.cover} alt={playlist.name} className="h-full w-full object-cover rounded-none" />
-                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+            <div className="flex flex-col md:flex-row gap-8 mb-8">
+                {/* Cover Image */}
+                <div className="w-64 h-64 bg-gray-800 shadow-2xl relative group">
+                    <img
+                        src={playlist.playlist_cover_url || "https://via.placeholder.com/300?text=Playlist"}
+                        alt={playlist.playlist_name}
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Play size={48} className="text-white" />
+                    </div>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                    <span className="text-sm font-bold uppercase tracking-widest text-metro-cyan">Playlist</span>
-                    <h1 className="text-5xl font-light text-white uppercase tracking-tighter md:text-7xl">
-                        {playlist.name}
-                    </h1>
-                    <p className="mt-2 text-gray-400 font-light">{playlist.description}</p>
-                    <div className="mt-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
-                        <span>{playlist.author}</span>
-                        <span className="mx-2 text-gray-600">•</span>
-                        <span>{playlist.songs.length} songs</span>
+                {/* Info */}
+                <div className="flex flex-col justify-end text-white">
+                    <span className="text-xs font-bold uppercase tracking-widest text-metro-cyan mb-2">Playlist</span>
+                    <h1 className="text-5xl md:text-7xl font-bold mb-4">{playlist.playlist_name}</h1>
+                    <p className="text-gray-400 mb-6 max-w-lg">{playlist.playlist_description || "No description."}</p>
+
+                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                        <span className="font-bold text-white">Owner</span>
+                        <span>•</span>
+                        <span>{songs.length} songs</span>
+                        <span>•</span>
+                        <span>2 hr 15 min</span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-4 mt-6">
+                        <button className="w-14 h-14 bg-metro-lime rounded-full flex items-center justify-center text-black hover:scale-105 transition-transform shadow-lg shadow-metro-lime/20">
+                            <Play size={24} fill="currentColor" className="ml-1" />
+                        </button>
+                        <button className="text-gray-400 hover:text-white transition-colors">
+                            <Heart size={32} />
+                        </button>
+                        <button className="text-gray-400 hover:text-white transition-colors">
+                            <MoreHorizontal size={32} />
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Actions */}
-            <div className="my-8 flex items-center gap-6">
-                <button className="flex h-16 w-16 items-center justify-center rounded-full bg-metro-cyan text-white shadow-lg hover:scale-105 hover:bg-cyan-500 transition-all">
-                    <Play size={32} fill="currentColor" className="ml-1" />
-                </button>
-                <button className="text-gray-400 hover:text-white border-2 border-transparent hover:border-white rounded-full p-2 transition-all">
-                    <MoreHorizontal size={32} />
-                </button>
-            </div>
-
             {/* Song Table */}
-            <div className="mt-8">
-                <div className="grid grid-cols-[40px_4fr_3fr_1fr] gap-4 border-b-2 border-metro-dark px-4 py-3 text-xs font-bold uppercase tracking-widest text-gray-500">
-                    <span>#</span>
-                    <span>Title</span>
-                    <span>Album</span>
-                    <span className="flex justify-end"><Clock size={16} /></span>
+            <div className="bg-black/20 text-gray-300">
+                {/* Table Header */}
+                <div className="grid grid-cols-[16px_4fr_3fr_2fr_1fr] gap-4 px-4 py-3 border-b border-gray-800 text-xs font-bold uppercase tracking-widest text-gray-500">
+                    <div>#</div>
+                    <div>Title</div>
+                    <div>Album</div>
+                    <div>Date Added</div>
+                    <div className="text-right"><Clock size={16} className="inline" /></div>
                 </div>
 
+                {/* Table Body */}
                 <div className="mt-2">
-                    {playlist.songs.map((song, index) => (
-                        <div key={song.id} className="group grid grid-cols-[40px_4fr_3fr_1fr] gap-4 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-default border-b border-gray-900">
-                            <span className="flex items-center font-mono text-gray-500 group-hover:text-metro-cyan">{index + 1}</span>
-                            <div className="flex items-center gap-4">
-                                <img src={song.coverUrl} className="h-10 w-10 object-cover shadow-sm" alt="" />
+                    {songs.map((song: any, index: number) => (
+                        <div
+                            key={song.id}
+                            className="group grid grid-cols-[16px_4fr_3fr_2fr_1fr] gap-4 px-4 py-3 hover:bg-white/5 rounded-md transition-colors items-center cursor-pointer"
+                            onClick={() => handlePlaySong(song)}
+                        >
+                            <div className="text-gray-500 group-hover:text-white group-hover:hidden">{index + 1}</div>
+                            <div className="hidden group-hover:block text-white"><Play size={12} fill="white" /></div>
+
+                            <div className="flex items-center gap-3">
+                                <img src={song.coverUrl || "https://via.placeholder.com/40"} alt="" className="w-10 h-10 object-cover rounded" />
                                 <div>
-                                    <p className="font-semibold text-white group-hover:text-metro-cyan transition-colors">{song.title}</p>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide">{song.artist}</p>
+                                    <div className="text-white font-medium group-hover:text-metro-cyan transition-colors">{song.title}</div>
+                                    <div className="text-xs text-gray-500">Unknown Artist</div>
                                 </div>
                             </div>
-                            <div className="flex items-center text-sm text-gray-400">Single</div>
-                            <div className="flex items-center justify-end text-sm font-mono text-gray-500">
-                                {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
-                            </div>
+
+                            <div className="text-sm">Unknown Album</div>
+                            <div className="text-sm">Today</div>
+                            <div className="text-sm text-right font-mono">3:45</div>
                         </div>
                     ))}
+
+                    {songs.length === 0 && (
+                        <div className="p-8 text-center text-gray-500">
+                            This playlist is empty.
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -1,8 +1,38 @@
 import axios from 'axios';
 
+// Types
+export interface User {
+    id: string;
+    user_email: string;
+    user_full_name: string;
+    role: 'ADMIN' | 'USER';
+}
+
+export interface Song {
+    id: string;
+    title: string;
+    slug: string;
+    fileUrl: string;
+    coverUrl: string;
+    duration_seconds: number;
+    artist_id?: string;
+    genre_id?: string;
+    uploaded_by?: string;
+}
+
+export interface Playlist {
+    id: string;
+    playlist_name: string;
+    playlist_description?: string;
+    playlist_cover_url?: string;
+    playlist_is_private: boolean;
+    user_id: string;
+    Songs?: Song[]; // Songs in playlist
+}
+
 // Create axios instance
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api', // Mobile map to 10.0.2.2 or distinct
+    baseURL: 'http://localhost:3000/api',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -37,8 +67,12 @@ api.interceptors.response.use(
                         device_type: 'web'
                     });
 
-                    localStorage.setItem('accessToken', data.data.accessToken);
-                    api.defaults.headers.common['Authorization'] = `Bearer ${data.data.accessToken}`;
+                    const newAccessToken = data.data.accessToken;
+                    localStorage.setItem('accessToken', newAccessToken);
+
+                    // Update header for this request
+                    originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                    api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
 
                     return api(originalRequest);
                 } catch (refreshError) {
@@ -52,5 +86,35 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+// API Methods
+export const authApi = {
+    login: (credentials: any) => api.post('/auth/login', { ...credentials, device_type: 'web' }),
+    register: (data: any) => api.post('/auth/register', data),
+    logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken, device_type: 'web' }),
+    getProfile: () => api.get('/auth/me'),
+};
+
+export const songApi = {
+    getAll: () => api.get('/songs'),
+    getById: (id: string) => api.get(`/songs/${id}`),
+    uploadDevice: (formData: FormData) => api.post('/songs/addNewSongFromDevice', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    uploadYoutube: (data: { ytbURL: string, skipDuplicateCheck?: boolean }) => api.post('/songs/addNewSongFromYtUrl', data),
+    search: (name: string) => api.get(`/songs/filter/name?name=${name}`),
+    getStreamUrl: (id: string) => api.get(`/songs/stream/${id}`),
+};
+
+export const playlistApi = {
+    getMyPlaylists: () => api.get('/playlists'),
+    create: (data: { name: string, description?: string, isPrivate?: boolean, coverUrl?: string }) => api.post('/playlists', data),
+    getById: (id: string) => api.get(`/playlists/${id}`),
+    update: (id: string, data: any) => api.put(`/playlists/${id}`, data),
+    delete: (id: string) => api.delete(`/playlists/${id}`),
+    addSong: (playlistId: string, songId: string) => api.post(`/playlists/${playlistId}/songs`, { songId }),
+    removeSong: (playlistId: string, songId: string) => api.delete(`/playlists/${playlistId}/songs/${songId}`),
+    reorder: (playlistId: string, songIds: string[]) => api.put(`/playlists/${playlistId}/songs/reorder`, { songIds }),
+};
 
 export default api;

@@ -3,13 +3,34 @@ import { useState } from 'react';
 
 type UploadMode = 'file' | 'youtube';
 
+import { useDispatch, useSelector } from 'react-redux';
+import { type AppDispatch, type RootState } from '../store';
+import { uploadSongDevice, uploadSongYoutube, clearUploadStatus } from '../store/slices/songSlice';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+
 const UploadSongPage = () => {
+    const dispatch = useDispatch<AppDispatch>();
+    const navigate = useNavigate();
+    const { uploadStatus, error } = useSelector((state: RootState) => state.songs);
+
     const [mode, setMode] = useState<UploadMode>('file');
     const [dragActive, setDragActive] = useState(false);
     const [songFile, setSongFile] = useState<File | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [youtubeUrl, setYoutubeUrl] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (uploadStatus === 'succeeded') {
+            alert('Upload successful!');
+            dispatch(clearUploadStatus());
+            navigate('/');
+        }
+        if (uploadStatus === 'failed' && error) {
+            alert(`Upload failed: ${error}`);
+            dispatch(clearUploadStatus());
+        }
+    }, [uploadStatus, error, dispatch, navigate]);
 
     // Extract YouTube video ID from various URL formats
     const getYoutubeVideoId = (url: string): string | null => {
@@ -45,16 +66,22 @@ const UploadSongPage = () => {
     };
 
     const handleUpload = () => {
-        setIsLoading(true);
-        // Mock API call
-        setTimeout(() => {
-            setIsLoading(false);
-            alert(mode === 'file'
-                ? `Uploaded: ${songFile?.name || 'Unknown'}`
-                : `Downloading from YouTube: ${youtubeUrl}`
-            );
-        }, 2000);
+        if (mode === 'file') {
+            if (!songFile || !coverFile) return;
+            const formData = new FormData();
+            formData.append('songFile', songFile);
+            formData.append('songCover', coverFile);
+            formData.append('songTitle', songFile.name.replace(/\.[^/.]+$/, ""));
+            // Default genre/artist for now
+            formData.append('skipDuplicateCheck', 'false');
+            dispatch(uploadSongDevice(formData));
+        } else {
+            if (!youtubeUrl) return;
+            dispatch(uploadSongYoutube({ ytbURL: youtubeUrl, skipDuplicateCheck: false }));
+        }
     };
+
+    const isLoading = uploadStatus === 'uploading';
 
     return (
         <div className="animate-slide-up mx-auto max-w-4xl">

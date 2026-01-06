@@ -1,7 +1,18 @@
-import { Plus, Heart } from 'lucide-react';
+import { useEffect } from 'react';
+import { Plus, Heart, Music } from 'lucide-react';
 import { MetroTile } from '../components/MetroTile';
+import { useDispatch, useSelector } from 'react-redux';
+import { type AppDispatch, type RootState } from '../store';
+import { fetchMyPlaylists } from '../store/slices/playlistSlice';
 
 const LibraryPage = () => {
+    const dispatch = useDispatch<AppDispatch>();
+    const { playlists, loading } = useSelector((state: RootState) => state.playlists);
+
+    useEffect(() => {
+        dispatch(fetchMyPlaylists());
+    }, [dispatch]);
+
     return (
         <div className="animate-slide-up">
             <div className="mb-6 flex items-center justify-between">
@@ -16,51 +27,48 @@ const LibraryPage = () => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[128px]">
-                {/* Favorites Tile */}
-                <MetroTile
-                    title="Liked Songs"
-                    count="142"
-                    icon={<Heart size={32} fill="white" />}
-                    color="blue"
-                    size="wide"
-                    to="/playlist/1"
-                    backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
-                />
+            {loading ? (
+                <div className="text-white">Loading playlists...</div>
+            ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[128px]">
+                    {/* Hardcoded Favorites (Todo: fetch favorites specifically) */}
+                    <MetroTile
+                        title="Liked Songs"
+                        count="N/A"
+                        icon={<Heart size={32} fill="white" />}
+                        color="blue"
+                        size="wide"
+                        to="/playlist/favorites"
+                        backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
+                    />
 
-                {/* Mock Playlists */}
-                <MetroTile
-                    title="Coding Focus"
-                    count="45 Songs"
-                    color="magenta"
-                    to="/playlist/2"
-                />
+                    {/* User Playlists */}
+                    {playlists.map((playlist) => (
+                        <MetroTile
+                            key={playlist.id}
+                            title={playlist.playlist_name}
+                            count={`${playlist.Songs?.length || 0} Songs`}
+                            color="magenta" // Dynamic color later?
+                            to={`/playlist/${playlist.id}`}
+                            icon={<Music size={32} />}
+                        />
+                    ))}
 
-                <MetroTile
-                    title="Gym Hits"
-                    count="32 Songs"
-                    color="lime"
-                    to="/playlist/3"
-                />
+                    {/* Empty State if no playlists */}
+                    {playlists.length === 0 && (
+                        <div className="col-span-full py-8 text-center text-gray-500 uppercase tracking-widest">
+                            No playlists found. Create one to get started.
+                        </div>
+                    )}
 
-                <MetroTile
-                    title="Sleepy Time"
-                    count="12 Songs"
-                    color="purple"
-                    to="/playlist/4"
-                />
-
-                <MetroTile
-                    title="Empty Slot 1"
-                    color="teal"
-                    className="opacity-50"
-                />
-                <MetroTile
-                    title="Empty Slot 2"
-                    color="orange"
-                    className="opacity-50"
-                />
-            </div>
+                    {/* Slot placeholders (optional) */}
+                    <MetroTile
+                        title="Empty Slot"
+                        color="orange"
+                        className="opacity-20"
+                    />
+                </div>
+            )}
         </div>
     );
 };
