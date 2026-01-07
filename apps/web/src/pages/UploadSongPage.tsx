@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 const UploadSongPage = () => {
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
-    const { uploadStatus, error } = useSelector((state: RootState) => state.songs);
+    const { uploadStatus, error, duplicateInfo } = useSelector((state: RootState) => state.songs);
 
     const [mode, setMode] = useState<UploadMode>('file');
     const [dragActive, setDragActive] = useState(false);
@@ -52,7 +52,16 @@ const UploadSongPage = () => {
             alert(`Upload failed: ${error}`);
             dispatch(clearUploadStatus());
         }
-    }, [uploadStatus, error, dispatch, navigate]);
+        if (uploadStatus === 'duplicate' && duplicateInfo) {
+            const existingTitle = duplicateInfo.existingSong?.title || 'Unknown';
+            const shouldForce = window.confirm(`⚠️ Bài hát trùng lặp!\n\n${duplicateInfo.message}\n\nBài hát đã tồn tại: "${existingTitle}"\n\nBạn có muốn tiếp tục upload không?`);
+
+            if (shouldForce) {
+                handleUpload(true); // Force upload
+            }
+            dispatch(clearUploadStatus());
+        }
+    }, [uploadStatus, error, duplicateInfo, dispatch, navigate]);
 
     // Extract YouTube video ID from various URL formats
     const getYoutubeVideoId = (url: string): string | null => {
@@ -87,7 +96,7 @@ const UploadSongPage = () => {
         }
     };
 
-    const handleUpload = () => {
+    const handleUpload = (force = false) => {
         if (mode === 'file') {
             if (!songFile) {
                 alert("Please select a song file.");
@@ -110,14 +119,14 @@ const UploadSongPage = () => {
                 formData.append('songArtistName', artist); // Send artist name, backend will find or create
             }
 
-            formData.append('skipDuplicateCheck', 'false');
+            formData.append('skipDuplicateCheck', force ? 'true' : 'false');
             dispatch(uploadSongDevice(formData));
         } else {
             if (!youtubeUrl) {
                 alert("Please enter a YouTube URL.");
                 return;
             }
-            dispatch(uploadSongYoutube({ ytbURL: youtubeUrl, skipDuplicateCheck: false }));
+            dispatch(uploadSongYoutube({ ytbURL: youtubeUrl, skipDuplicateCheck: force }));
         }
     };
 
@@ -307,7 +316,7 @@ const UploadSongPage = () => {
                             </select>
                         </div>
                         <button
-                            onClick={handleUpload}
+                            onClick={() => handleUpload(false)}
                             disabled={isLoading || (mode === 'file' && !songFile) || (mode === 'youtube' && !youtubeUrl)}
                             className={`mt-6 w-full py-4 font-bold uppercase tracking-widest text-white transition-all flex items-center justify-center gap-2 ${mode === 'file'
                                 ? 'bg-metro-cyan hover:bg-cyan-600'

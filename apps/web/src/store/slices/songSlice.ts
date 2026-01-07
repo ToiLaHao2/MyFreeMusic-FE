@@ -1,13 +1,26 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { songApi, type Song } from '../../lib/api-client';
 
+// Response type for upload actions
+interface UploadResponse {
+    isDuplicate: boolean;
+    song?: Song;
+    existingSong?: Song;
+    message?: string;
+    reason?: string;
+}
+
 interface SongState {
     songs: Song[];
     currentSong: Song | null;
     isPlaying: boolean;
     loading: boolean;
     error: string | null;
-    uploadStatus: 'idle' | 'uploading' | 'succeeded' | 'failed';
+    uploadStatus: 'idle' | 'uploading' | 'succeeded' | 'failed' | 'duplicate';
+    duplicateInfo: {
+        message: string;
+        existingSong: Song | null;
+    } | null;
 }
 
 const initialState: SongState = {
@@ -17,6 +30,7 @@ const initialState: SongState = {
     loading: false,
     error: null,
     uploadStatus: 'idle',
+    duplicateInfo: null,
 };
 
 // Async Thunks
@@ -32,24 +46,38 @@ export const fetchSongs = createAsyncThunk(
     }
 );
 
-export const uploadSongDevice = createAsyncThunk(
+export const uploadSongDevice = createAsyncThunk<UploadResponse, FormData>(
     'songs/uploadDevice',
     async (formData: FormData, { rejectWithValue }) => {
         try {
             const response = await songApi.uploadDevice(formData);
-            return response.data.data.song;
+            const data = response.data.data;
+            return {
+                isDuplicate: data.isDuplicate || false,
+                song: data.song,
+                existingSong: data.existingSong,
+                message: data.message,
+                reason: data.reason,
+            };
         } catch (err: any) {
             return rejectWithValue(err.response?.data?.message || 'Upload failed');
         }
     }
 );
 
-export const uploadSongYoutube = createAsyncThunk(
+export const uploadSongYoutube = createAsyncThunk<UploadResponse, { ytbURL: string, skipDuplicateCheck?: boolean }>(
     'songs/uploadYoutube',
-    async (data: { ytbURL: string, skipDuplicateCheck?: boolean }, { rejectWithValue }) => {
+    async (data, { rejectWithValue }) => {
         try {
             const response = await songApi.uploadYoutube(data);
-            return response.data.data.song;
+            const responseData = response.data.data;
+            return {
+                isDuplicate: responseData.isDuplicate || false,
+                song: responseData.song,
+                existingSong: responseData.existingSong,
+                message: responseData.message,
+                reason: responseData.reason,
+            };
         } catch (err: any) {
             return rejectWithValue(err.response?.data?.message || 'Download failed');
         }
@@ -73,6 +101,7 @@ const songSlice = createSlice({
         clearUploadStatus: (state) => {
             state.uploadStatus = 'idle';
             state.error = null;
+            state.duplicateInfo = null;
         }
     },
     extraReducers: (builder) => {
@@ -94,10 +123,21 @@ const songSlice = createSlice({
             .addCase(uploadSongDevice.pending, (state) => {
                 state.uploadStatus = 'uploading';
                 state.error = null;
+                state.duplicateInfo = null;
             })
             .addCase(uploadSongDevice.fulfilled, (state, action) => {
-                state.uploadStatus = 'succeeded';
-                state.songs.unshift(action.payload); // Add new song to top
+                if (action.payload.isDuplicate) {
+                    state.uploadStatus = 'duplicate';
+                    state.duplicateInfo = {
+                        message: action.payload.message || 'Bài hát này đã tồn tại',
+                        existingSong: action.payload.existingSong || null,
+                    };
+                } else {
+                    state.uploadStatus = 'succeeded';
+                    if (action.payload.song) {
+                        state.songs.unshift(action.payload.song);
+                    }
+                }
             })
             .addCase(uploadSongDevice.rejected, (state, action) => {
                 state.uploadStatus = 'failed';
@@ -107,10 +147,21 @@ const songSlice = createSlice({
             .addCase(uploadSongYoutube.pending, (state) => {
                 state.uploadStatus = 'uploading';
                 state.error = null;
+                state.duplicateInfo = null;
             })
             .addCase(uploadSongYoutube.fulfilled, (state, action) => {
-                state.uploadStatus = 'succeeded';
-                state.songs.unshift(action.payload);
+                if (action.payload.isDuplicate) {
+                    state.uploadStatus = 'duplicate';
+                    state.duplicateInfo = {
+                        message: action.payload.message || 'Bài hát này đã tồn tại',
+                        existingSong: action.payload.existingSong || null,
+                    };
+                } else {
+                    state.uploadStatus = 'succeeded';
+                    if (action.payload.song) {
+                        state.songs.unshift(action.payload.song);
+                    }
+                }
             })
             .addCase(uploadSongYoutube.rejected, (state, action) => {
                 state.uploadStatus = 'failed';
