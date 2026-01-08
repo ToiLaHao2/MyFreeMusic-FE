@@ -40,6 +40,30 @@ export const createPlaylist = createAsyncThunk(
     }
 );
 
+export const deletePlaylist = createAsyncThunk(
+    'playlists/delete',
+    async (id: string, { rejectWithValue }) => {
+        try {
+            await playlistApi.delete(id);
+            return id;
+        } catch (err: any) {
+            return rejectWithValue(err.response?.data?.message || 'Failed to delete playlist');
+        }
+    }
+);
+
+export const updatePlaylist = createAsyncThunk(
+    'playlists/update',
+    async ({ id, data }: { id: string, data: { name?: string, description?: string, isPrivate?: boolean } }, { rejectWithValue }) => {
+        try {
+            const response = await playlistApi.update(id, data);
+            return { id, data: response.data.data.playlist || data };
+        } catch (err: any) {
+            return rejectWithValue(err.response?.data?.message || 'Failed to update playlist');
+        }
+    }
+);
+
 const playlistSlice = createSlice({
     name: 'playlists',
     initialState,
@@ -69,9 +93,21 @@ const playlistSlice = createSlice({
             // Create Playlist
             .addCase(createPlaylist.fulfilled, (state, action) => {
                 state.playlists.push(action.payload);
+            })
+            // Delete Playlist
+            .addCase(deletePlaylist.fulfilled, (state, action) => {
+                state.playlists = state.playlists.filter(p => p.id !== action.payload);
+            })
+            // Update Playlist
+            .addCase(updatePlaylist.fulfilled, (state, action) => {
+                const index = state.playlists.findIndex(p => p.id === action.payload.id);
+                if (index !== -1) {
+                    state.playlists[index] = { ...state.playlists[index], ...action.payload.data };
+                }
             });
     },
 });
 
 export const { setCurrentPlaylist, clearError } = playlistSlice.actions;
 export default playlistSlice.reducer;
+

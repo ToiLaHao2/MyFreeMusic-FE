@@ -1,9 +1,54 @@
-import { MOCK_ANALYTICS } from '../../mocks/analytics';
-import { TrendingUp, Music, Users, Activity } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { analyticsApi } from '../../lib/api-client';
+import { TrendingUp, Music, Users, Activity, Loader2 } from 'lucide-react';
+
+interface Analytics {
+    totalPlays: number;
+    totalUsers: number;
+    activeSessions: number;
+    playsPerDay: { day: string; plays: number }[];
+    topSongs: { title: string; artist: string; plays: number }[];
+    genreDistribution: { genre: string; percentage: number }[];
+}
 
 export const AnalyticsPanel = () => {
-    const { playsPerDay, topSongs, genreDistribution, totalPlays, totalUsers, activeSessions } = MOCK_ANALYTICS;
-    const maxPlays = Math.max(...playsPerDay.map(d => d.plays));
+    const [analytics, setAnalytics] = useState<Analytics | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchAnalytics();
+    }, []);
+
+    const fetchAnalytics = async () => {
+        try {
+            setLoading(true);
+            const res = await analyticsApi.getAnalytics();
+            setAnalytics(res.data.data.analytics || null);
+        } catch (error) {
+            console.error('Failed to fetch analytics:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center py-20">
+                <Loader2 className="animate-spin text-metro-cyan" size={48} />
+            </div>
+        );
+    }
+
+    if (!analytics) {
+        return (
+            <div className="text-center py-20 text-gray-400">
+                Failed to load analytics data
+            </div>
+        );
+    }
+
+    const { playsPerDay, topSongs, genreDistribution, totalPlays, totalUsers, activeSessions } = analytics;
+    const maxPlays = Math.max(...playsPerDay.map(d => d.plays), 1);
 
     return (
         <div className="space-y-8 animate-slide-up">
@@ -81,7 +126,7 @@ export const AnalyticsPanel = () => {
                         return (
                             <div
                                 key={g.genre}
-                                className={`${colors[i]} flex items-center justify-center transition-all hover:brightness-110`}
+                                className={`${colors[i % colors.length]} flex items-center justify-center transition-all hover:brightness-110`}
                                 style={{ width: `${g.percentage}%` }}
                                 title={`${g.genre}: ${g.percentage}%`}
                             >
@@ -97,7 +142,7 @@ export const AnalyticsPanel = () => {
                         const colors = ['bg-metro-cyan', 'bg-metro-magenta', 'bg-metro-lime', 'bg-metro-orange', 'bg-gray-600'];
                         return (
                             <div key={g.genre} className="flex items-center gap-2">
-                                <div className={`w-3 h-3 ${colors[i]}`} />
+                                <div className={`w-3 h-3 ${colors[i % colors.length]}`} />
                                 <span className="text-xs text-gray-400">{g.genre} ({g.percentage}%)</span>
                             </div>
                         );
@@ -107,3 +152,4 @@ export const AnalyticsPanel = () => {
         </div>
     );
 };
+

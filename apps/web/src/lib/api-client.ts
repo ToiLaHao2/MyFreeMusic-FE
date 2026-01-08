@@ -121,4 +121,25 @@ export const playlistApi = {
     reorder: (playlistId: string, songIds: string[]) => api.put(`/playlists/${playlistId}/songs/reorder`, { songIds }),
 };
 
+export const adminApi = {
+    getUsers: () => api.get('/admin/users'),
+    getUserById: (id: string) => api.get(`/admin/users/${id}`),
+    updateUserStatus: (id: string, isActive: boolean) => api.patch(`/admin/users/${id}/status`, { isActive }),
+    updateUserRole: (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role }),
+    deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
+    getStats: () => api.get('/admin/stats'),
+};
+
+export const analyticsApi = {
+    getAnalytics: () => api.get('/analytics'),
+    getUserLogs: (userId: string) => api.get(`/analytics/users/${userId}/logs`),
+};
+
+export const storageApi = {
+    getStats: () => api.get('/storage'),
+    getDatabaseStats: () => api.get('/storage/database'),
+    refresh: () => api.post('/storage/refresh'),
+};
+
 export default api;
+

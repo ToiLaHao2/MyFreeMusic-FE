@@ -1,17 +1,76 @@
-import { useEffect } from 'react';
-import { Plus, Heart, Music } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Heart, Music, Trash2, Edit2 } from 'lucide-react';
 import { MetroTile } from '../components/MetroTile';
 import { useDispatch, useSelector } from 'react-redux';
 import { type AppDispatch, type RootState } from '../store';
-import { fetchMyPlaylists } from '../store/slices/playlistSlice';
+import { fetchMyPlaylists, createPlaylist, deletePlaylist, updatePlaylist } from '../store/slices/playlistSlice';
+import { CreatePlaylistModal } from '../components/modals/CreatePlaylistModal';
+import { EditPlaylistModal } from '../components/modals/EditPlaylistModal';
+
+interface PlaylistType {
+    id: string;
+    playlist_name: string;
+    playlist_description?: string;
+    playlist_is_private: boolean;
+    Songs?: any[];
+}
 
 const LibraryPage = () => {
     const dispatch = useDispatch<AppDispatch>();
     const { playlists, loading } = useSelector((state: RootState) => state.playlists);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [editingPlaylist, setEditingPlaylist] = useState<PlaylistType | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         dispatch(fetchMyPlaylists());
     }, [dispatch]);
+
+    const handleCreatePlaylist = async (data: { name: string; description: string; isPrivate: boolean }) => {
+        setIsCreating(true);
+        try {
+            await dispatch(createPlaylist({
+                name: data.name,
+                description: data.description,
+                isPrivate: data.isPrivate
+            })).unwrap();
+            setIsCreateModalOpen(false);
+        } catch (error) {
+            console.error('Failed to create playlist:', error);
+            alert('Failed to create playlist. Please try again.');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleDeletePlaylist = async (id: string, name: string) => {
+        if (confirm(`Are you sure you want to delete "${name}"?`)) {
+            try {
+                await dispatch(deletePlaylist(id)).unwrap();
+            } catch (error) {
+                console.error('Failed to delete playlist:', error);
+                alert('Failed to delete playlist. Please try again.');
+            }
+        }
+    };
+
+    const handleEditPlaylist = async (data: { name: string; description: string; isPrivate: boolean }) => {
+        if (!editingPlaylist) return;
+        setIsEditing(true);
+        try {
+            await dispatch(updatePlaylist({
+                id: editingPlaylist.id,
+                data: { name: data.name, description: data.description, isPrivate: data.isPrivate }
+            })).unwrap();
+            setEditingPlaylist(null);
+        } catch (error) {
+            console.error('Failed to update playlist:', error);
+            alert('Failed to update playlist. Please try again.');
+        } finally {
+            setIsEditing(false);
+        }
+    };
 
     return (
         <div className="animate-slide-up">
@@ -21,7 +80,10 @@ const LibraryPage = () => {
                         Your <span className="font-bold text-metro-cyan">Library</span>
                     </h2>
                 </div>
-                <button className="flex items-center gap-2 bg-gray-800 border-2 border-transparent px-6 py-2 text-sm font-bold uppercase text-white hover:border-metro-cyan hover:bg-gray-700 transition-all">
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="flex items-center gap-2 bg-gray-800 border-2 border-transparent px-6 py-2 text-sm font-bold uppercase text-white hover:border-metro-cyan hover:bg-gray-700 transition-all"
+                >
                     <Plus size={20} />
                     <span>Create Playlist</span>
                 </button>
@@ -43,15 +105,41 @@ const LibraryPage = () => {
                     />
 
                     {/* User Playlists */}
-                    {playlists.map((playlist) => (
-                        <MetroTile
-                            key={playlist.id}
-                            title={playlist.playlist_name}
-                            count={`${playlist.Songs?.length || 0} Songs`}
-                            color="magenta" // Dynamic color later?
-                            to={`/playlist/${playlist.id}`}
-                            icon={<Music size={32} />}
-                        />
+                    {playlists.map((playlist: PlaylistType) => (
+                        <div key={playlist.id} className="relative group">
+                            <MetroTile
+                                title={playlist.playlist_name}
+                                count={`${playlist.Songs?.length || 0} Songs`}
+                                color="magenta"
+                                to={`/playlist/${playlist.id}`}
+                                icon={<Music size={32} />}
+                            />
+                            {/* Action buttons - visible on hover */}
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setEditingPlaylist(playlist);
+                                    }}
+                                    className="p-2 bg-black/70 text-white hover:bg-metro-cyan transition-colors"
+                                    title="Edit"
+                                >
+                                    <Edit2 size={16} />
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeletePlaylist(playlist.id, playlist.playlist_name);
+                                    }}
+                                    className="p-2 bg-black/70 text-white hover:bg-metro-magenta transition-colors"
+                                    title="Delete"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        </div>
                     ))}
 
                     {/* Empty State if no playlists */}
@@ -60,17 +148,29 @@ const LibraryPage = () => {
                             No playlists found. Create one to get started.
                         </div>
                     )}
-
-                    {/* Slot placeholders (optional) */}
-                    <MetroTile
-                        title="Empty Slot"
-                        color="orange"
-                        className="opacity-20"
-                    />
                 </div>
             )}
+
+            {/* Create Playlist Modal */}
+            <CreatePlaylistModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onCreate={handleCreatePlaylist}
+                isLoading={isCreating}
+            />
+
+            {/* Edit Playlist Modal */}
+            <EditPlaylistModal
+                isOpen={!!editingPlaylist}
+                onClose={() => setEditingPlaylist(null)}
+                onSave={handleEditPlaylist}
+                isLoading={isEditing}
+                playlist={editingPlaylist}
+            />
         </div>
     );
 };
 
 export default LibraryPage;
+
+
