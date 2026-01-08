@@ -16,12 +16,17 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import RightPanel from '../components/RightPanel';
+import { useTheme } from '../components/ThemeProvider';
 
 const MainLayout = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch<AppDispatch>();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { theme } = useTheme();
+
+    // Check if theme has a background image
+    const hasBackgroundImage = theme?.backgroundType === 'image' && theme?.backgroundValue;
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -43,7 +48,7 @@ const MainLayout = () => {
     // ... existing imports
 
     return (
-        <div className="min-h-screen bg-metro-dark text-white font-sans selection:bg-metro-cyan selection:text-white">
+        <div className={`min-h-screen text-white font-sans selection:bg-metro-cyan selection:text-white ${hasBackgroundImage ? 'bg-transparent' : 'bg-metro-dark'}`}>
             {/* Mobile Header */}
             <header className="flex items-center justify-between border-b border-gray-800 bg-metro-dark p-4 lg:hidden">
                 {/* ... existing header content ... */}

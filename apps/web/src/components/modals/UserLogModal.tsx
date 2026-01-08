@@ -1,5 +1,6 @@
-import { X, LogIn, LogOut, Play, ListMusic, Heart, Share2 } from 'lucide-react';
-import { MOCK_USER_LOGS, type UserLog } from '../../mocks/analytics';
+import { useState, useEffect } from 'react';
+import { X, LogIn, LogOut, Play, ListMusic, Heart, Share2, Loader2 } from 'lucide-react';
+import { analyticsApi } from '../../lib/api-client';
 
 interface UserLogModalProps {
     isOpen: boolean;
@@ -7,32 +8,89 @@ interface UserLogModalProps {
     user: { id: string; fullName: string; email: string } | null;
 }
 
-const getActionIcon = (action: UserLog['action']) => {
+interface UserLog {
+    id: string;
+    userId: string;
+    action: string;
+    details: string;
+    timestamp: string;
+    ipAddress?: string;
+    userAgent?: string;
+}
+
+const getActionIcon = (action: string) => {
     switch (action) {
-        case 'LOGIN': return <LogIn size={14} className="text-metro-lime" />;
-        case 'LOGOUT': return <LogOut size={14} className="text-gray-500" />;
-        case 'PLAY_SONG': return <Play size={14} className="text-metro-cyan" />;
-        case 'CREATE_PLAYLIST': return <ListMusic size={14} className="text-metro-blue" />;
-        case 'LIKE_SONG': return <Heart size={14} className="text-metro-magenta" />;
-        case 'SHARE_PLAYLIST': return <Share2 size={14} className="text-metro-orange" />;
+        case 'LOGIN':
+        case 'USER_LOGIN':
+            return <LogIn size={14} className="text-metro-lime" />;
+        case 'LOGOUT':
+        case 'USER_LOGOUT':
+            return <LogOut size={14} className="text-gray-500" />;
+        case 'PLAY_SONG':
+            return <Play size={14} className="text-metro-cyan" />;
+        case 'CREATE_PLAYLIST':
+        case 'PLAYLIST_CREATE':
+            return <ListMusic size={14} className="text-metro-blue" />;
+        case 'LIKE_SONG':
+        case 'PLAYLIST_LIKE':
+            return <Heart size={14} className="text-metro-magenta" />;
+        case 'SHARE_PLAYLIST':
+        case 'PLAYLIST_SHARE':
+            return <Share2 size={14} className="text-metro-orange" />;
+        default:
+            return <Play size={14} className="text-gray-400" />;
     }
 };
 
-const getActionColor = (action: UserLog['action']) => {
+const getActionColor = (action: string) => {
     switch (action) {
-        case 'LOGIN': return 'border-metro-lime';
-        case 'LOGOUT': return 'border-gray-600';
-        case 'PLAY_SONG': return 'border-metro-cyan';
-        case 'CREATE_PLAYLIST': return 'border-metro-blue';
-        case 'LIKE_SONG': return 'border-metro-magenta';
-        case 'SHARE_PLAYLIST': return 'border-metro-orange';
+        case 'LOGIN':
+        case 'USER_LOGIN':
+            return 'border-metro-lime';
+        case 'LOGOUT':
+        case 'USER_LOGOUT':
+            return 'border-gray-600';
+        case 'PLAY_SONG':
+            return 'border-metro-cyan';
+        case 'CREATE_PLAYLIST':
+        case 'PLAYLIST_CREATE':
+            return 'border-metro-blue';
+        case 'LIKE_SONG':
+        case 'PLAYLIST_LIKE':
+            return 'border-metro-magenta';
+        case 'SHARE_PLAYLIST':
+        case 'PLAYLIST_SHARE':
+            return 'border-metro-orange';
+        default:
+            return 'border-gray-700';
     }
 };
 
 export const UserLogModal = ({ isOpen, onClose, user }: UserLogModalProps) => {
-    if (!isOpen || !user) return null;
+    const [userLogs, setUserLogs] = useState<UserLog[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    const userLogs = MOCK_USER_LOGS.filter(log => log.userId === user.id);
+    useEffect(() => {
+        if (isOpen && user) {
+            fetchUserLogs();
+        }
+    }, [isOpen, user]);
+
+    const fetchUserLogs = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const res = await analyticsApi.getUserLogs(user.id);
+            setUserLogs(res.data.data.logs || []);
+        } catch (error) {
+            console.error('Failed to fetch user logs:', error);
+            setUserLogs([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen || !user) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 animate-fade-in" onClick={onClose}>
@@ -55,7 +113,11 @@ export const UserLogModal = ({ isOpen, onClose, user }: UserLogModalProps) => {
 
                 {/* Log List */}
                 <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {userLogs.length === 0 ? (
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <Loader2 className="animate-spin text-metro-cyan" size={32} />
+                        </div>
+                    ) : userLogs.length === 0 ? (
                         <p className="text-center text-gray-500 py-8">No activity logs found</p>
                     ) : (
                         <div className="space-y-3">
@@ -72,7 +134,7 @@ export const UserLogModal = ({ isOpen, onClose, user }: UserLogModalProps) => {
                                         </p>
                                     </div>
                                     <span className="text-xs font-bold uppercase tracking-widest text-gray-600">
-                                        {log.action.replace('_', ' ')}
+                                        {log.action.replace(/_/g, ' ')}
                                     </span>
                                 </div>
                             ))}

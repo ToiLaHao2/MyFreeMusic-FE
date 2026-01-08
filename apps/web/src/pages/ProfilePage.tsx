@@ -1,29 +1,78 @@
-import { useState, useRef } from 'react';
-import { User, Mail, Save, Camera, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { User, Mail, Save, Camera, Loader2, Palette, Image as ImageIcon, Droplet } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
-import { authApi } from '../lib/api-client';
+import { authApi, themeApi } from '../lib/api-client';
 import type { RootState } from '../store';
 import { setCredentials } from '../store/slices/authSlice';
+import { useTheme } from '../components/ThemeProvider';
+
+interface Preset {
+    name: string;
+    accent: string;
+    background: string;
+}
 
 const ProfilePage = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
+    const { theme, refreshTheme } = useTheme();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const bgFileInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
+    const [isThemeLoading, setIsThemeLoading] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [presets, setPresets] = useState<Preset[]>([]);
 
     const [formData, setFormData] = useState({
         fullName: user?.name || '',
         email: user?.email || '',
         profilePicture: user?.avatar || '',
         bio: user?.bio || 'Just a music lover hanging out in the Metro.',
-        theme: user?.theme || 'Dark'
     });
+
+    const [themeData, setThemeData] = useState({
+        presetTheme: theme?.presetTheme || 'Dark',
+        accentColor: theme?.accentColor || '#00ABA9',
+        backgroundType: theme?.backgroundType || 'default',
+        backgroundColor: theme?.backgroundValue || '#000000',
+    });
+    const [bgPreview, setBgPreview] = useState<string | null>(null);
+    const [bgFile, setBgFile] = useState<File | null>(null);
+
+    useEffect(() => {
+        themeApi.getPresets().then(res => setPresets(res.data.data.presets || []));
+    }, []);
+
+    useEffect(() => {
+        if (theme) {
+            setThemeData({
+                presetTheme: theme.presetTheme,
+                accentColor: theme.accentColor,
+                backgroundType: theme.backgroundType,
+                backgroundColor: theme.backgroundValue || '#000000',
+            });
+        }
+    }, [theme]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setThemeData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handlePresetClick = (preset: Preset) => {
+        setThemeData(prev => ({
+            ...prev,
+            presetTheme: preset.name,
+            accentColor: preset.accent,
+            backgroundColor: preset.background,
+            backgroundType: 'default',
+        }));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,6 +80,15 @@ const ProfilePage = () => {
             const file = e.target.files[0];
             setSelectedFile(file);
             setPreviewImage(URL.createObjectURL(file));
+        }
+    };
+
+    const handleBgFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setBgFile(file);
+            setBgPreview(URL.createObjectURL(file));
+            setThemeData(prev => ({ ...prev, backgroundType: 'image' }));
         }
     };
 
@@ -42,9 +100,6 @@ const ProfilePage = () => {
             const data = new FormData();
             data.append('fullName', formData.fullName);
             data.append('bio', formData.bio);
-            data.append('theme', formData.theme);
-            // Email update might not be supported yet or needs verification
-            // data.append('email', formData.email); 
 
             if (selectedFile) {
                 data.append('avatar', selectedFile);
@@ -53,20 +108,9 @@ const ProfilePage = () => {
             const res = await authApi.updateProfile(data);
 
             if (res.data.success) {
-                // Update Redux state with new user info
-                // We need to keep tokens, just update user
                 dispatch(setCredentials({
-                    user: {
-                        id: res.data.data.user.id,
-                        name: res.data.data.user.name,
-                        email: res.data.data.user.email,
-                        role: res.data.data.user.role,
-                        avatar: res.data.data.user.avatar,
-                        bio: res.data.data.user.bio,
-                        theme: res.data.data.user.theme
-                    }
+                    user: res.data.data.user
                 }));
-
                 alert('Profile updated successfully!');
             }
         } catch (error) {
@@ -74,6 +118,33 @@ const ProfilePage = () => {
             alert("Failed to update profile. Please try again.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleSaveTheme = async () => {
+        setIsThemeLoading(true);
+        try {
+            const data = new FormData();
+            data.append('presetTheme', themeData.presetTheme);
+            data.append('accentColor', themeData.accentColor);
+            data.append('backgroundType', themeData.backgroundType);
+            if (themeData.backgroundType === 'color') {
+                data.append('backgroundColor', themeData.backgroundColor);
+            }
+            if (bgFile) {
+                data.append('background', bgFile);
+            }
+
+            await themeApi.update(data);
+            await refreshTheme();
+            setBgFile(null);
+            setBgPreview(null);
+            alert('Theme saved!');
+        } catch (err) {
+            console.error('Failed to save theme:', err);
+            alert('Failed to save theme.');
+        } finally {
+            setIsThemeLoading(false);
         }
     };
 
@@ -154,45 +225,154 @@ const ProfilePage = () => {
                                     name="bio"
                                     value={formData.bio}
                                     onChange={handleChange}
-                                    rows={4}
+                                    rows={3}
                                     className="w-full bg-gray-900 border-l-4 border-gray-700 p-4 text-white focus:border-metro-cyan focus:outline-none transition-colors"
                                 />
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-widest text-metro-cyan mb-2">
-                                    Theme Preference
-                                </label>
-                                <select
-                                    name="theme"
-                                    value={formData.theme}
-                                    onChange={handleChange}
-                                    className="w-full bg-gray-900 border-l-4 border-gray-700 p-4 text-white focus:border-metro-cyan focus:outline-none transition-colors"
-                                >
-                                    <option>Dark</option>
-                                    <option>Light (Coming Soon)</option>
-                                    <option>High Contrast</option>
-                                </select>
-                            </div>
                         </div>
 
-                        <div className="pt-4 flex justify-end gap-4">
-                            <button type="button" className="px-6 py-3 text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
-                                Cancel
-                            </button>
+                        <div className="pt-4 flex justify-end">
                             <button
                                 type="submit"
                                 disabled={isLoading}
                                 className="flex items-center gap-2 bg-metro-blue px-8 py-3 text-sm font-bold uppercase tracking-widest text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
                             >
                                 {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                                Save Changes
+                                Save Profile
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+
+            {/* Appearance Section */}
+            <div className="border-t border-gray-800 pt-8 mt-8">
+                <h2 className="text-2xl font-light uppercase tracking-wider text-white mb-6 flex items-center gap-3">
+                    <Palette size={24} className="text-metro-cyan" />
+                    Appearance
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Presets */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+                            Theme Presets
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {presets.map(preset => (
+                                <button
+                                    key={preset.name}
+                                    onClick={() => handlePresetClick(preset)}
+                                    className={`p-3 border-2 transition-all ${themeData.presetTheme === preset.name ? 'border-white' : 'border-gray-700 hover:border-gray-500'}`}
+                                    style={{ background: preset.background }}
+                                >
+                                    <div className="h-4 w-full rounded" style={{ background: preset.accent }} />
+                                    <span className="text-xs text-white mt-1 block">{preset.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Custom Colors */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-2">
+                                <Droplet size={14} /> Accent Color
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="color"
+                                    name="accentColor"
+                                    value={themeData.accentColor}
+                                    onChange={handleThemeChange}
+                                    className="h-10 w-16 cursor-pointer bg-transparent border-none"
+                                />
+                                <input
+                                    type="text"
+                                    name="accentColor"
+                                    value={themeData.accentColor}
+                                    onChange={handleThemeChange}
+                                    className="flex-1 bg-gray-900 border-l-4 border-gray-700 p-3 text-white text-sm font-mono"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-2">
+                                <ImageIcon size={14} /> Background
+                            </label>
+                            <div className="flex gap-2 mb-3">
+                                {(['default', 'color', 'image'] as const).map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setThemeData(prev => ({ ...prev, backgroundType: type }))}
+                                        className={`px-4 py-2 text-xs uppercase font-bold transition-all ${themeData.backgroundType === type ? 'bg-metro-cyan text-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {themeData.backgroundType === 'color' && (
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="color"
+                                        name="backgroundColor"
+                                        value={themeData.backgroundColor}
+                                        onChange={handleThemeChange}
+                                        className="h-10 w-16 cursor-pointer bg-transparent border-none"
+                                    />
+                                    <input
+                                        type="text"
+                                        name="backgroundColor"
+                                        value={themeData.backgroundColor}
+                                        onChange={handleThemeChange}
+                                        className="flex-1 bg-gray-900 border-l-4 border-gray-700 p-3 text-white text-sm font-mono"
+                                    />
+                                </div>
+                            )}
+
+                            {themeData.backgroundType === 'image' && (
+                                <div>
+                                    <button
+                                        onClick={() => bgFileInputRef.current?.click()}
+                                        className="w-full bg-gray-800 border-2 border-dashed border-gray-600 p-4 text-gray-400 hover:border-metro-cyan hover:text-white transition-colors"
+                                    >
+                                        {bgPreview || theme?.backgroundValue ? 'Change Background Image' : 'Upload Background Image'}
+                                    </button>
+                                    <input
+                                        type="file"
+                                        ref={bgFileInputRef}
+                                        className="hidden"
+                                        accept="image/png, image/jpeg, image/webp"
+                                        onChange={handleBgFileChange}
+                                    />
+                                    {(bgPreview || (theme?.backgroundType === 'image' && theme?.backgroundValue)) && (
+                                        <img
+                                            src={bgPreview || theme?.backgroundValue || ''}
+                                            alt="Background Preview"
+                                            className="mt-3 h-24 w-full object-cover opacity-75"
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                    <button
+                        onClick={handleSaveTheme}
+                        disabled={isThemeLoading}
+                        className="flex items-center gap-2 bg-metro-purple px-8 py-3 text-sm font-bold uppercase tracking-widest text-white hover:bg-purple-600 transition-colors disabled:opacity-50"
+                    >
+                        {isThemeLoading ? <Loader2 className="animate-spin" size={18} /> : <Palette size={18} />}
+                        Save Theme
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
+
 export default ProfilePage;

@@ -3,8 +3,10 @@
 @theme {
     /* ========================================
        Nokia Lumia / Windows Phone Metro Colors
+       Note: --color-metro-cyan is the PRIMARY ACCENT and will be 
+       overridden by user's theme setting via ThemeProvider
        ======================================== */
-    --color-metro-cyan: #00ABA9;
+    --color-metro-cyan: var(--theme-accent, #00ABA9);
     --color-metro-magenta: #D80073;
     --color-metro-lime: #A4C400;
     --color-metro-orange: #FA6800;
@@ -14,7 +16,7 @@
     --color-metro-red: #E51400;
     --color-metro-pink: #F472B6;
     --color-metro-yellow: #E3C800;
-    --color-metro-dark: #000000;
+    --color-metro-dark: var(--theme-bg-color, #000000);
     --color-metro-dark-alt: #1A1A1A;
 
     /* Animations */
@@ -108,6 +110,16 @@
 }
 
 /* ========================================
+   Theme CSS Custom Properties (Overridden by ThemeProvider)
+   ======================================== */
+:root {
+    --theme-accent: #00ABA9;
+    --theme-bg: none;
+    --theme-bg-color: #000000;
+    --theme-sidebar-opacity: 1;
+}
+
+/* ========================================
    Global Styles
    ======================================== */
 html {
@@ -115,17 +127,74 @@ html {
 }
 
 body {
-    background-color: var(--color-metro-dark);
+    background-color: var(--theme-bg-color);
+    background-image: var(--theme-bg);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     font-family: "Segoe UI", "Segoe UI Light", Tahoma, Geneva, Verdana, sans-serif;
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Selection Color */
+/* When background image is present, add overlay */
+body.theme-has-bg-image::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: -1;
+}
+
+/* Selection Color uses theme accent */
 ::selection {
-    background-color: var(--color-metro-cyan);
+    background-color: var(--theme-accent);
     color: #ffffff;
+}
+
+/* ========================================
+   Theme-Aware Color Overrides
+   These override Tailwind classes to use theme accent at runtime
+   ======================================== */
+.bg-metro-cyan {
+    background-color: var(--theme-accent) !important;
+}
+
+.text-metro-cyan {
+    color: var(--theme-accent) !important;
+}
+
+.border-metro-cyan {
+    border-color: var(--theme-accent) !important;
+}
+
+.hover\:border-metro-cyan:hover {
+    border-color: var(--theme-accent) !important;
+}
+
+.hover\:bg-metro-cyan:hover {
+    background-color: var(--theme-accent) !important;
+}
+
+.hover\:text-metro-cyan:hover {
+    color: var(--theme-accent) !important;
+}
+
+.focus\:border-metro-cyan:focus {
+    border-color: var(--theme-accent) !important;
+}
+
+.ring-metro-cyan {
+    --tw-ring-color: var(--theme-accent) !important;
+}
+
+.group-hover\:ring-metro-cyan:is(.group:hover *) {
+    --tw-ring-color: var(--theme-accent) !important;
+}
+
+.group-hover\:text-metro-cyan:is(.group:hover *) {
+    color: var(--theme-accent) !important;
 }
 
 /* ========================================

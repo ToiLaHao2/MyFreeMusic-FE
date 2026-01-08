@@ -5,7 +5,7 @@ interface MetroTileProps {
     title: string;
     icon?: React.ReactNode;
     count?: number | string;
-    color: 'cyan' | 'magenta' | 'lime' | 'orange' | 'blue' | 'purple' | 'teal';
+    color: 'cyan' | 'magenta' | 'lime' | 'orange' | 'blue' | 'purple' | 'teal' | 'red' | 'green' | 'pink' | 'indigo' | 'amber' | 'emerald';
     size?: 'small' | 'medium' | 'wide' | 'large';
     to?: string;
     onClick?: () => void;
@@ -14,13 +14,19 @@ interface MetroTileProps {
 }
 
 const colorMap: Record<MetroTileProps['color'], string> = {
-    cyan: 'bg-metro-cyan',
-    magenta: 'bg-metro-magenta',
-    lime: 'bg-metro-lime',
-    orange: 'bg-metro-orange',
-    blue: 'bg-metro-blue',
-    purple: 'bg-metro-purple',
-    teal: 'bg-metro-teal',
+    cyan: 'bg-cyan-500',
+    magenta: 'bg-fuchsia-500',
+    lime: 'bg-lime-500',
+    orange: 'bg-orange-500',
+    blue: 'bg-blue-600',
+    purple: 'bg-purple-600',
+    teal: 'bg-teal-500',
+    red: 'bg-red-600',
+    green: 'bg-green-600',
+    pink: 'bg-pink-500',
+    indigo: 'bg-indigo-600',
+    amber: 'bg-amber-500',
+    emerald: 'bg-emerald-600',
 };
 
 const sizeMap: Record<NonNullable<MetroTileProps['size']>, string> = {
@@ -41,22 +47,17 @@ export const MetroTile: React.FC<MetroTileProps> = ({
     backgroundImage,
     className = ''
 }) => {
-    const Component = to ? Link : 'div';
-    const linkProps = to ? { to } : {};
+    const baseClassName = `
+        group relative flex flex-col justify-between overflow-hidden p-4 cursor-pointer
+        transition-all duration-150 ease-out
+        hover:brightness-110 active:scale-95
+        ${backgroundImage ? 'bg-gray-900' : colorMap[color]} 
+        ${sizeMap[size]} 
+        ${className}
+    `;
 
-    return (
-        <Component
-            {...linkProps}
-            onClick={onClick}
-            className={`
-                group relative flex flex-col justify-between overflow-hidden p-4 cursor-pointer
-                transition-all duration-150 ease-out
-                hover:brightness-110 active:scale-95
-                ${backgroundImage ? 'bg-gray-900' : colorMap[color]} 
-                ${sizeMap[size]} 
-                ${className}
-            `}
-        >
+    const content = (
+        <>
             {/* Background Image */}
             {backgroundImage && (
                 <div className="absolute inset-0 z-0">
@@ -84,14 +85,29 @@ export const MetroTile: React.FC<MetroTileProps> = ({
             </div>
 
             {/* Bottom Row: Title */}
-            <div className="relative z-10">
-                <h3 className="text-base font-semibold uppercase tracking-wider text-white leading-tight">
+            <div className="relative z-10 bg-gradient-to-t from-black/50 to-transparent -mx-4 -mb-4 px-4 py-3 mt-auto">
+                <h3 className="text-base font-bold uppercase tracking-wider text-white leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
                     {title}
                 </h3>
             </div>
 
             {/* Hover Highlight Border */}
             <div className="absolute inset-0 border-2 border-white/0 transition-colors group-hover:border-white/20" />
-        </Component>
+        </>
+    );
+
+    // Conditional rendering: Link when `to` is provided, div otherwise
+    if (to) {
+        return (
+            <Link to={to} onClick={onClick} className={baseClassName}>
+                {content}
+            </Link>
+        );
+    }
+
+    return (
+        <div onClick={onClick} className={baseClassName}>
+            {content}
+        </div>
     );
 };

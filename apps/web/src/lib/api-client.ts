@@ -11,6 +11,17 @@ export interface User {
     theme?: string;
     customAllSongsCover?: string;
     customLikedSongsCover?: string;
+    themeSettings?: ThemeSettings;
+}
+
+export interface ThemeSettings {
+    presetTheme: string;
+    accentColor: string;
+    backgroundType: 'default' | 'color' | 'image';
+    backgroundValue: string | null;
+    sidebarOpacity: number;
+    effectiveAccent: string;
+    effectiveBackground: string;
 }
 
 export interface Genre {
@@ -179,6 +190,17 @@ export const favoritesApi = {
     check: (ids: string[]) => api.get(`/favorites/check?ids=${ids.join(',')}`),
     add: (songId: string) => api.post(`/favorites/${songId}`),
     remove: (songId: string) => api.delete(`/favorites/${songId}`),
+};
+
+export const themeApi = {
+    get: () => api.get('/theme'),
+    update: (data: FormData | { presetTheme?: string; accentColor?: string; backgroundType?: string; backgroundColor?: string; sidebarOpacity?: number }) => {
+        if (data instanceof FormData) {
+            return api.put('/theme', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
+        return api.put('/theme', data);
+    },
+    getPresets: () => api.get('/theme/presets'),
 };
 
 export default api;

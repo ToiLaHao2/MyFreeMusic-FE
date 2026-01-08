@@ -6,9 +6,11 @@ import { useDispatch } from 'react-redux';
 import { setCurrentSong } from '../store/slices/songSlice';
 
 // Helper to assign random Metro colors to genres
-const METRO_COLORS = ['cyan', 'magenta', 'lime', 'orange', 'blue', 'purple', 'teal', 'red', 'green', 'pink'];
+const METRO_COLORS: Array<'cyan' | 'magenta' | 'lime' | 'orange' | 'blue' | 'purple' | 'teal' | 'red' | 'green' | 'pink' | 'indigo' | 'amber' | 'emerald'> = [
+    'cyan', 'magenta', 'lime', 'orange', 'blue', 'purple', 'teal', 'red', 'green', 'pink', 'indigo', 'amber', 'emerald'
+];
 const getRandomColor = (index: number) => {
-    return METRO_COLORS[index % METRO_COLORS.length] as 'cyan' | 'magenta' | 'lime' | 'orange' | 'blue' | 'purple' | 'teal';
+    return METRO_COLORS[index % METRO_COLORS.length];
 };
 
 // Debounce hook
