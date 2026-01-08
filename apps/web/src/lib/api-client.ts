@@ -9,6 +9,8 @@ export interface User {
     avatar?: string;
     bio?: string;
     theme?: string;
+    customAllSongsCover?: string;
+    customLikedSongsCover?: string;
 }
 
 export interface Genre {

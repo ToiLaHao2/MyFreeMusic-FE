@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Plus, Heart, Music, Trash2, Edit2, Users } from 'lucide-react';
 import { MetroTile } from '../components/MetroTile';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,7 +6,8 @@ import { type AppDispatch, type RootState } from '../store';
 import { fetchMyPlaylists, createPlaylist, deletePlaylist, updatePlaylist } from '../store/slices/playlistSlice';
 import { CreatePlaylistModal } from '../components/modals/CreatePlaylistModal';
 import { EditPlaylistModal } from '../components/modals/EditPlaylistModal';
-import { playlistApi } from '../lib/api-client';
+import { playlistApi, authApi } from '../lib/api-client';
+import { setCredentials } from '../store/slices/authSlice';
 
 interface PlaylistType {
     id: string;
@@ -25,6 +26,43 @@ const LibraryPage = () => {
     const [editingPlaylist, setEditingPlaylist] = useState<PlaylistType | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [sharedPlaylists, setSharedPlaylists] = useState<any[]>([]);
+    const { user } = useSelector((state: RootState) => state.auth); // Get user for custom covers
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingCoverType, setUploadingCoverType] = useState<'allSongs' | 'likedSongs' | null>(null);
+
+    // Import useRef
+    // import { useEffect, useState, useRef } from 'react'; (Will be handled by imports below if consistent, but need to ensure useRef is imported)
+
+    // ... useEffect ...
+
+    const handleEditCover = (type: 'allSongs' | 'likedSongs') => {
+        setUploadingCoverType(type);
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !uploadingCoverType) return;
+
+        const formData = new FormData();
+        if (uploadingCoverType === 'allSongs') {
+            formData.append('customAllSongsCover', file);
+        } else {
+            formData.append('customLikedSongsCover', file);
+        }
+
+        try {
+            const res = await authApi.updateProfile(formData);
+            dispatch(setCredentials({ user: res.data.data.user }));
+            alert('Cover updated successfully!');
+        } catch (error) {
+            console.error('Failed to update cover:', error);
+            alert('Failed to update cover.');
+        } finally {
+            setUploadingCoverType(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
 
     useEffect(() => {
         dispatch(fetchMyPlaylists());
@@ -117,26 +155,50 @@ const LibraryPage = () => {
                         ) : (
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[128px]">
                                 {/* All Songs */}
-                                <MetroTile
-                                    title="All Songs"
-                                    count="Library"
-                                    icon={<Music size={32} fill="white" />}
-                                    color="lime"
-                                    size="wide"
-                                    to="/songs"
-                                    backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
-                                />
+                                <div className="relative group">
+                                    <MetroTile
+                                        title="All Songs"
+                                        count="Library"
+                                        icon={<Music size={32} fill="white" />}
+                                        color="lime"
+                                        size="wide"
+                                        to="/songs"
+                                        backgroundImage={user?.customAllSongsCover || "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"}
+                                    />
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleEditCover('allSongs');
+                                        }}
+                                        className="absolute top-2 right-2 p-2 bg-black/70 text-white hover:bg-metro-cyan transition-colors opacity-0 group-hover:opacity-100 z-20 rounded shadow-lg"
+                                        title="Change Cover"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                </div>
 
-                                {/* Hardcoded Favorites */}
-                                <MetroTile
-                                    title="Liked Songs"
-                                    count="N/A"
-                                    icon={<Heart size={32} fill="white" />}
-                                    color="blue"
-                                    size="wide"
-                                    to="/playlist/favorites"
-                                    backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
-                                />
+                                {/* Liked Songs */}
+                                <div className="relative group">
+                                    <MetroTile
+                                        title="Liked Songs"
+                                        count="N/A"
+                                        icon={<Heart size={32} fill="white" />}
+                                        color="blue"
+                                        size="wide"
+                                        to="/playlist/favorites"
+                                        backgroundImage={user?.customLikedSongsCover || "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"}
+                                    />
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleEditCover('likedSongs');
+                                        }}
+                                        className="absolute top-2 right-2 p-2 bg-black/70 text-white hover:bg-metro-cyan transition-colors opacity-0 group-hover:opacity-100 z-20 rounded shadow-lg"
+                                        title="Change Cover"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                </div>
 
                                 {/* User Playlists */}
                                 {playlists.map((playlist: PlaylistType) => (
@@ -222,6 +284,15 @@ const LibraryPage = () => {
                 onSave={handleEditPlaylist}
                 isLoading={isEditing}
                 playlist={editingPlaylist}
+            />
+
+            {/* Hidden File Input for Custom Covers */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/png, image/jpeg, image/webp"
+                onChange={handleFileChange}
             />
         </div>
     );

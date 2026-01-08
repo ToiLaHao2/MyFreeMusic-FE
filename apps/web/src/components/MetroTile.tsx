@@ -52,7 +52,7 @@ export const MetroTile: React.FC<MetroTileProps> = ({
                 group relative flex flex-col justify-between overflow-hidden p-4 cursor-pointer
                 transition-all duration-150 ease-out
                 hover:brightness-110 active:scale-95
-                ${colorMap[color]} 
+                ${backgroundImage ? 'bg-gray-900' : colorMap[color]} 
                 ${sizeMap[size]} 
                 ${className}
             `}
@@ -63,9 +63,9 @@ export const MetroTile: React.FC<MetroTileProps> = ({
                     <img
                         src={backgroundImage}
                         alt=""
-                        className="h-full w-full object-cover opacity-50 transition-transform duration-500 group-hover:scale-105"
+                        className="h-full w-full object-cover opacity-100 transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
                 </div>
             )}
 

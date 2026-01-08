@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '../store';
+import type { RootState, AppDispatch } from '../store';
 import { logout } from '../store/slices/authSlice';
 import {
     Home,
@@ -11,14 +11,15 @@ import {
     User as UserIcon,
     Menu,
     X,
-    Globe
+    Globe,
+    Music
 } from 'lucide-react';
 import { useState } from 'react';
 import RightPanel from '../components/RightPanel';
 
 const MainLayout = () => {
     const { user } = useSelector((state: RootState) => state.auth);
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,8 +54,8 @@ const MainLayout = () => {
                     <h1 className="text-xl font-bold uppercase tracking-widest text-white">MyFreeMusic</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                    {user?.profilePicture ? (
-                        <img src={user.profilePicture} alt="User" className="h-8 w-8 rounded-none border border-gray-600" />
+                    {user?.avatar ? (
+                        <img src={user.avatar} alt="User" className="h-8 w-8 rounded-none border border-gray-600" />
                     ) : (
                         <UserIcon className="h-8 w-8 rounded-none bg-metro-blue p-1" />
                     )}
@@ -75,6 +76,7 @@ const MainLayout = () => {
 
                     <nav className="flex flex-col gap-1 py-4">
                         <NavItem to="/" icon={Home} label="Home" />
+                        <NavItem to="/songs" icon={Music} label="All Songs" />
                         <NavItem to="/search" icon={Search} label="Search" />
                         <NavItem to="/library" icon={Library} label="Library" />
                         <NavItem to="/upload" icon={UploadCloud} label="Upload" />
@@ -83,15 +85,15 @@ const MainLayout = () => {
 
                     <div className="absolute bottom-0 w-full p-8">
                         <Link to="/profile" className="mb-6 flex items-center gap-4 group cursor-pointer">
-                            {user?.profilePicture ? (
-                                <img src={user.profilePicture} alt="User" className="h-12 w-12 rounded-none ring-2 ring-gray-700 group-hover:ring-metro-cyan transition-all" />
+                            {user?.avatar ? (
+                                <img src={user.avatar} alt="User" className="h-12 w-12 rounded-none ring-2 ring-gray-700 group-hover:ring-metro-cyan transition-all" />
                             ) : (
                                 <div className="flex h-12 w-12 items-center justify-center bg-metro-magenta">
                                     <UserIcon className="h-6 w-6 text-white" />
                                 </div>
                             )}
                             <div>
-                                <p className="font-semibold text-white group-hover:text-metro-cyan transition-colors">{user?.fullName}</p>
+                                <p className="font-semibold text-white group-hover:text-metro-cyan transition-colors">{user?.name || 'User'}</p>
                                 <p className="text-xs uppercase tracking-wider text-metro-cyan">{user?.role}</p>
                             </div>
                         </Link>
