@@ -3,12 +3,23 @@ import axios from 'axios';
 // Types
 export interface User {
     id: string;
-    user_email: string;
-    user_full_name: string;
+    email: string;
+    name: string;
     role: 'ADMIN' | 'USER';
+    avatar?: string;
+    bio?: string;
+    theme?: string;
+}
+
+export interface Genre {
+    id: string;
+    name: string;
+    description?: string;
 }
 
 export interface Song {
+    artist: any;
+    artist_names: string;
     id: string;
     title: string;
     slug: string;
@@ -93,6 +104,9 @@ export const authApi = {
     register: (data: any) => api.post('/auth/register', data),
     logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken, device_type: 'web' }),
     getProfile: () => api.get('/auth/me'),
+    updateProfile: (data: FormData) => api.put('/auth/me', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 };
 
 export const songApi = {
@@ -107,6 +121,7 @@ export const songApi = {
 
     // New Methods for dynamic data
     getGenres: () => api.get('/genres'),
+    getSongsByGenre: (genreId: string) => api.get(`/songs/filter/genre?genreId=${genreId}`),
     getArtists: () => api.get('/artists'),
 };
 
@@ -114,20 +129,36 @@ export const playlistApi = {
     getMyPlaylists: () => api.get('/playlists'),
     create: (data: { name: string, description?: string, isPrivate?: boolean, coverUrl?: string }) => api.post('/playlists', data),
     getById: (id: string) => api.get(`/playlists/${id}`),
-    update: (id: string, data: any) => api.put(`/playlists/${id}`, data),
+    update: (id: string, data: any) => {
+        // Check if data is FormData (has file), otherwise JSON
+        if (data instanceof FormData) {
+            return api.put(`/playlists/${id}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        }
+        return api.put(`/playlists/${id}`, data);
+    },
     delete: (id: string) => api.delete(`/playlists/${id}`),
     addSong: (playlistId: string, songId: string) => api.post(`/playlists/${playlistId}/songs`, { songId }),
     removeSong: (playlistId: string, songId: string) => api.delete(`/playlists/${playlistId}/songs/${songId}`),
     reorder: (playlistId: string, songIds: string[]) => api.put(`/playlists/${playlistId}/songs/reorder`, { songIds }),
+    share: (id: string, email: string, permission: 'VIEW' | 'EDIT' = 'VIEW') => api.post(`/playlists/${id}/share`, { email, permission }),
+    unshare: (id: string, userId: string) => api.delete(`/playlists/${id}/share/${userId}`),
+    getShared: () => api.get('/playlists/shared'),
+    getCommunity: () => api.get('/playlists/community'),
+    toggleLike: (id: string) => api.post(`/playlists/${id}/like`),
 };
 
 export const adminApi = {
     getUsers: () => api.get('/admin/users'),
+    createUser: (data: any) => api.post('/admin/users', data),
     getUserById: (id: string) => api.get(`/admin/users/${id}`),
     updateUserStatus: (id: string, isActive: boolean) => api.patch(`/admin/users/${id}/status`, { isActive }),
     updateUserRole: (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role }),
     deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
     getStats: () => api.get('/admin/stats'),
+    getLogs: (page = 1, limit = 20, action?: string) => api.get('/admin/logs', { params: { page, limit, action } }),
+    clearLogs: (days = 30) => api.delete('/admin/logs', { params: { days } }),
 };
 
 export const analyticsApi = {
@@ -139,6 +170,13 @@ export const storageApi = {
     getStats: () => api.get('/storage'),
     getDatabaseStats: () => api.get('/storage/database'),
     refresh: () => api.post('/storage/refresh'),
+};
+
+export const favoritesApi = {
+    getAll: () => api.get('/favorites'),
+    check: (ids: string[]) => api.get(`/favorites/check?ids=${ids.join(',')}`),
+    add: (songId: string) => api.post(`/favorites/${songId}`),
+    remove: (songId: string) => api.delete(`/favorites/${songId}`),
 };
 
 export default api;

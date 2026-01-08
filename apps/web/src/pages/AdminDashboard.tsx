@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Trash2, UserPlus, FileAudio, Users, RotateCcw, BarChart2, FileText, Loader2, HardDrive } from 'lucide-react';
 import { adminApi } from '../lib/api-client';
 import { MetroTile } from '../components/MetroTile';
-import { AddUserModal } from '../components/modals/AddUserModal';
+import { CreateUserModal } from '../components/modals/CreateUserModal';
 import { ResetPasswordModal } from '../components/modals/ResetPasswordModal';
 import { UserLogModal } from '../components/modals/UserLogModal';
 import { AnalyticsPanel } from '../components/analytics/AnalyticsPanel';
 import { StoragePanel } from '../components/analytics/StoragePanel';
+import ActivityLogsPanel from '../components/admin/ActivityLogsPanel';
 
-type TabType = 'users' | 'analytics' | 'storage';
+type TabType = 'users' | 'analytics' | 'storage' | 'logs';
 
 interface User {
     id: string;
@@ -66,9 +67,10 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleAddUser = (newUser: any) => {
-        setUsers([...users, newUser]);
-        alert(`User ${newUser.user_full_name} created successfully!`);
+    const handleCreateSuccess = () => {
+        setIsAddModalOpen(false);
+        fetchData(); // Refresh list
+        alert('User created successfully!');
     };
 
     const handleResetPassword = (password: string) => {
@@ -128,6 +130,16 @@ const AdminDashboard = () => {
                 >
                     <HardDrive size={18} />
                     Storage
+                </button>
+                <button
+                    onClick={() => setActiveTab('logs')}
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all border-b-4 ${activeTab === 'logs'
+                        ? 'border-metro-lime text-white'
+                        : 'border-transparent text-gray-500 hover:text-white'
+                        }`}
+                >
+                    <FileText size={18} />
+                    Logs
                 </button>
             </div>
 
@@ -247,16 +259,19 @@ const AdminDashboard = () => {
                 </>
             ) : activeTab === 'analytics' ? (
                 <AnalyticsPanel />
-            ) : (
+            ) : activeTab === 'storage' ? (
                 <StoragePanel />
+            ) : (
+                <ActivityLogsPanel />
             )}
 
             {/* Modals */}
-            <AddUserModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onAdd={handleAddUser}
-            />
+            {isAddModalOpen && (
+                <CreateUserModal
+                    onClose={() => setIsAddModalOpen(false)}
+                    onSuccess={handleCreateSuccess}
+                />
+            )}
             <ResetPasswordModal
                 isOpen={!!resetUser}
                 onClose={() => setResetUser(null)}

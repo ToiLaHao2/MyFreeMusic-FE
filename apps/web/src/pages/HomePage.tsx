@@ -3,15 +3,17 @@ import { MetroTile } from '../components/MetroTile';
 import { Play, Search, Library, UploadCloud, Settings, Radio } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
-import { fetchSongs, setCurrentSong } from '../store/slices/songSlice';
+import { fetchSongs, setCurrentSong, fetchLikedSongs } from '../store/slices/songSlice';
 
 const HomePage = () => {
     const { user } = useSelector((state: RootState) => state.auth);
-    const { songs, loading } = useSelector((state: RootState) => state.songs);
+    const { songs, loading, likedSongIds } = useSelector((state: RootState) => state.songs);
     const dispatch = useDispatch<AppDispatch>();
+    const likedCount = likedSongIds.length;
 
     useEffect(() => {
         dispatch(fetchSongs());
+        dispatch(fetchLikedSongs());
     }, [dispatch]);
 
     const handlePlaySong = (song: any) => {
@@ -74,8 +76,8 @@ const HomePage = () => {
                 <MetroTile
                     title="Favorites"
                     color="blue"
-                    count="12"
-                    to="/playlist/1"
+                    count={`${likedCount} Songs`}
+                    to="/playlist/favorites"
                 />
             </div>
 
@@ -102,8 +104,10 @@ const HomePage = () => {
 
                             <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 opacity-100 transition-opacity">
                                 <h3 className="truncate font-bold text-white uppercase tracking-wider">{song.title}</h3>
-                                {/* Assuming Backend doesn't populate artist name yet, hiding or showing placeholder */}
-                                <p className="truncate text-xs text-gray-300">Unknown Artist</p>
+                                {/* Display artist name dynamically */}
+                                <p className="truncate text-xs text-gray-300">
+                                    {song.artist_names || (song as any).artist?.name || "Unknown Artist"}
+                                </p>
                             </div>
 
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

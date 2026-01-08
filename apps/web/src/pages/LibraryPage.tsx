@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Plus, Heart, Music, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Heart, Music, Trash2, Edit2, Users } from 'lucide-react';
 import { MetroTile } from '../components/MetroTile';
 import { useDispatch, useSelector } from 'react-redux';
 import { type AppDispatch, type RootState } from '../store';
 import { fetchMyPlaylists, createPlaylist, deletePlaylist, updatePlaylist } from '../store/slices/playlistSlice';
 import { CreatePlaylistModal } from '../components/modals/CreatePlaylistModal';
 import { EditPlaylistModal } from '../components/modals/EditPlaylistModal';
+import { playlistApi } from '../lib/api-client';
 
 interface PlaylistType {
     id: string;
     playlist_name: string;
     playlist_description?: string;
     playlist_is_private: boolean;
+    playlist_cover_url?: string;
     Songs?: any[];
 }
 
@@ -22,9 +24,19 @@ const LibraryPage = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [editingPlaylist, setEditingPlaylist] = useState<PlaylistType | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [sharedPlaylists, setSharedPlaylists] = useState<any[]>([]);
 
     useEffect(() => {
         dispatch(fetchMyPlaylists());
+        const fetchShared = async () => {
+            try {
+                const res = await playlistApi.getShared();
+                setSharedPlaylists(res.data.data.playlists || []);
+            } catch (err) {
+                console.error("Failed to fetch shared playlists", err);
+            }
+        };
+        fetchShared();
     }, [dispatch]);
 
     const handleCreatePlaylist = async (data: { name: string; description: string; isPrivate: boolean }) => {
@@ -92,62 +104,106 @@ const LibraryPage = () => {
             {loading ? (
                 <div className="text-white">Loading playlists...</div>
             ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[128px]">
-                    {/* Hardcoded Favorites (Todo: fetch favorites specifically) */}
-                    <MetroTile
-                        title="Liked Songs"
-                        count="N/A"
-                        icon={<Heart size={32} fill="white" />}
-                        color="blue"
-                        size="wide"
-                        to="/playlist/favorites"
-                        backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
-                    />
-
-                    {/* User Playlists */}
-                    {playlists.map((playlist: PlaylistType) => (
-                        <div key={playlist.id} className="relative group">
-                            <MetroTile
-                                title={playlist.playlist_name}
-                                count={`${playlist.Songs?.length || 0} Songs`}
-                                color="magenta"
-                                to={`/playlist/${playlist.id}`}
-                                icon={<Music size={32} />}
-                            />
-                            {/* Action buttons - visible on hover */}
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setEditingPlaylist(playlist);
-                                    }}
-                                    className="p-2 bg-black/70 text-white hover:bg-metro-cyan transition-colors"
-                                    title="Edit"
-                                >
-                                    <Edit2 size={16} />
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleDeletePlaylist(playlist.id, playlist.playlist_name);
-                                    }}
-                                    className="p-2 bg-black/70 text-white hover:bg-metro-magenta transition-colors"
-                                    title="Delete"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                <div className="space-y-12">
+                    {/* Section: My Playlists */}
+                    <div>
+                        <h3 className="text-xl font-light uppercase tracking-widest text-white mb-4 border-b border-gray-800 pb-2">
+                            My Collections
+                        </h3>
+                        {playlists.length === 0 ? (
+                            <div className="py-8 text-center text-gray-500 uppercase tracking-widest bg-gray-900/50 border border-gray-800 border-dashed">
+                                No private playlists found. Create one to get started.
                             </div>
-                        </div>
-                    ))}
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[128px]">
+                                {/* All Songs */}
+                                <MetroTile
+                                    title="All Songs"
+                                    count="Library"
+                                    icon={<Music size={32} fill="white" />}
+                                    color="lime"
+                                    size="wide"
+                                    to="/songs"
+                                    backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
+                                />
 
-                    {/* Empty State if no playlists */}
-                    {playlists.length === 0 && (
-                        <div className="col-span-full py-8 text-center text-gray-500 uppercase tracking-widest">
-                            No playlists found. Create one to get started.
-                        </div>
-                    )}
+                                {/* Hardcoded Favorites */}
+                                <MetroTile
+                                    title="Liked Songs"
+                                    count="N/A"
+                                    icon={<Heart size={32} fill="white" />}
+                                    color="blue"
+                                    size="wide"
+                                    to="/playlist/favorites"
+                                    backgroundImage="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop"
+                                />
+
+                                {/* User Playlists */}
+                                {playlists.map((playlist: PlaylistType) => (
+                                    <div key={playlist.id} className="relative group">
+                                        <MetroTile
+                                            title={playlist.playlist_name}
+                                            count={`${playlist.Songs?.length || 0} Songs`}
+                                            color="magenta"
+                                            to={`/playlist/${playlist.id}`}
+                                            icon={<Music size={32} />}
+                                            backgroundImage={playlist.playlist_cover_url}
+                                        />
+                                        {/* Action buttons */}
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setEditingPlaylist(playlist);
+                                                }}
+                                                className="p-2 bg-black/70 text-white hover:bg-metro-cyan transition-colors"
+                                                title="Edit"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleDeletePlaylist(playlist.id, playlist.playlist_name);
+                                                }}
+                                                className="p-2 bg-black/70 text-white hover:bg-metro-magenta transition-colors"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Section: Shared With Me */}
+                    <div>
+                        <h3 className="text-xl font-light uppercase tracking-widest text-white mb-4 border-b border-gray-800 pb-2 flex items-center gap-2">
+                            Shared With Me <span className="text-xs bg-metro-orange px-2 py-0.5 text-black font-bold rounded">New</span>
+                        </h3>
+                        {sharedPlaylists.length === 0 ? (
+                            <div className="py-8 text-center text-gray-500 uppercase tracking-widest bg-gray-900/50 border border-gray-800 border-dashed">
+                                No playlists have been shared with you yet.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[128px]">
+                                {sharedPlaylists.map((playlist: any) => (
+                                    <MetroTile
+                                        key={playlist.id}
+                                        title={playlist.playlist_name}
+                                        count={`Shared by ${playlist.shared_from?.user_full_name || 'User'}`}
+                                        color="orange"
+                                        to={`/playlist/${playlist.id}`}
+                                        icon={<Users size={32} />}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 

@@ -4,9 +4,11 @@ import api from '../../lib/api-client';
 export interface User {
     id: string;
     email: string;
-    fullName: string;
+    name: string;
     role: 'ADMIN' | 'USER';
     avatar?: string;
+    bio?: string;
+    theme?: string;
 }
 
 interface AuthState {
@@ -82,6 +84,17 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
                 state.user = JSON.parse(userStr);
             }
+        },
+        setCredentials: (state, action: PayloadAction<{ user: User; accessToken?: string; refreshToken?: string }>) => {
+            state.user = action.payload.user;
+            state.isAuthenticated = true;
+            localStorage.setItem('user', JSON.stringify(action.payload.user));
+            if (action.payload.accessToken) {
+                localStorage.setItem('accessToken', action.payload.accessToken);
+            }
+            if (action.payload.refreshToken) {
+                localStorage.setItem('refreshToken', action.payload.refreshToken);
+            }
         }
     },
     extraReducers: (builder) => {
@@ -108,5 +121,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { restoreSession } = authSlice.actions;
+export const { restoreSession, setCredentials } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import HomePage from './pages/HomePage';
+import SongsPage from './pages/SongsPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import SearchPage from './pages/SearchPage';
@@ -25,6 +26,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/songs" element={<SongsPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/upload" element={<UploadSongPage />} />
             <Route path="/library" element={<LibraryPage />} />
